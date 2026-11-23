@@ -1,0 +1,52 @@
+name: AI Catalog conformance
+description: Checks AI Catalog documents against the spec, every normative statement numbered and traced.
+branding:
+  icon: check-square
+  color: blue
+
+inputs:
+  catalogs:
+    description: Catalog files (relative to the workspace) or URLs, one per line.
+    required: true
+  profile:
+    description: Profiles to check as well as the spec, one per line (nimblebrain).
+    default: ""
+  fetch:
+    description: Also fetch the catalog's URL and the artifacts its entries name (true or false).
+    default: "false"
+  baseline:
+    description: "A YAML file listing the failures to expect: `expected` holding a list of `id` and `reason`."
+    default: ""
+  strict:
+    description: Fail on warnings as well as failures (true or false).
+    default: "false"
+  spec:
+    description: The AI Catalog version to check against.
+    default: "0.9"
+
+runs:
+  using: composite
+  steps:
+    - name: Install the suite
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci --no-audit --no-fund --loglevel=error
+    - name: Check the catalogs
+      shell: bash
+      # Inputs reach the script through the environment, never the script's text.
+      env:
+        CATALOGS: ${{ inputs.catalogs }}
+        PROFILES: ${{ inputs.profile }}
+        FETCH: ${{ inputs.fetch }}
+        BASELINE: ${{ inputs.baseline }}
+        STRICT: ${{ inputs.strict }}
+        SPEC: ${{ inputs.spec }}
+      run: |
+        args=(--format github --spec "$SPEC")
+        while IFS= read -r p; do [ -n "$p" ] && args+=(--profile "$p"); done <<< "$PROFILES"
+        [ "$FETCH" = true ] && args+=(--fetch)
+        [ -n "$BASELINE" ] && args+=(--baseline "$BASELINE")
+        [ "$STRICT" = true ] && args+=(--strict)
+        catalogs=()
+        while IFS= read -r c; do c="${c#"${c%%[![:space:]]*}"}"; [ -n "$c" ] && catalogs+=("$c"); done <<< "$CATALOGS"
+        node "$GITHUB_ACTION_PATH/dist/cli.js" "${args[@]}" "${catalogs[@]}"

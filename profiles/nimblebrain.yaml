@@ -1,0 +1,35 @@
+# NimbleBrain's conventions for the AI Catalogs it publishes, on top of the spec.
+#
+# The spec leaves these to the publisher; we fix them so every NimbleBrain catalog
+# reads the same way. A catalog checked with `--profile nimblebrain` must pass these
+# as well as the spec's requirements. IDs are permanent, like the spec registry's.
+profile:
+  name: nimblebrain
+  title: NimbleBrain catalog conventions
+  spec: "0.9"
+requirements:
+  - id: NB-1
+    strength: MUST
+    role: producer
+    check: document
+    text: >-
+      Every entry's `identifier` is a `urn:air` identifier,
+      `urn:air:{publisher}:{name}:{kind}`, so it survives when another catalog lists
+      the artifact (ENTRY-4 makes this a SHOULD).
+  - id: NB-2
+    strength: MUST
+    role: producer
+    check: document
+    text: >-
+      A `urn:air` identifier ends in the kind its `type` names: `mcp` for an MCP
+      Server Card, `plugin` for an Agent Plugin, `skill` for an Agent Skill, `a2a`
+      for an A2A Agent Card, `catalog` for a nested AI Catalog. A consumer that
+      derives a name from the identifier shows `{name}`, so the kind belongs last.
+  - id: NB-3
+    strength: MUST
+    role: producer
+    check: document
+    text: >-
+      An entry's `publisher.identifier` is the domain in its `urn:air` identifier's
+      `{publisher}` segment, or that domain as a root `did:web` DID, since a signed
+      publisher endorsement must come from `did:web:` and that domain (DIDPUB-3).

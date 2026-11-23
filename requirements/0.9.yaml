@@ -1,0 +1,1714 @@
+# Every normative statement of AI Catalog 0.9, numbered.
+#
+# One entry per sentence of the spec that carries MUST, SHALL, REQUIRED, SHOULD or
+# RECOMMENDED (or a negation), quoted word for word, plus one entry per CDDL rule.
+# Each entry has exactly one of:
+#   check:    document | fetch   the suite checks it, from the document alone or by
+#                                fetching the catalog and the artifacts it names
+#   pending:  document | verify  it can be checked and is not yet; `reason` says why
+#   excluded: <reason>           it cannot be checked from a catalog, or is checked
+#                                under another ID
+# An entry with `definition: true` quotes a sentence that is normative without a
+# keyword (the digest format, the stored JWS form). Like the CDDL rules, the suite
+# enforces it as a MUST.
+# `role` is who the statement binds: producer (the catalog's author), signer,
+# operator (a catalog incorporating entries from elsewhere), consumer, profile (whoever
+# defines a signer profile), tooling, or spec.
+#
+# IDs are permanent. A new spec version keeps every ID whose statement survives,
+# gives new statements the next free number in their section, and retires removed
+# ones. `npm run sync` reports the difference. The spec text is CC-BY-4.0, from the
+# source below.
+spec:
+  title: AI Catalog Specification
+  version: "0.9"
+  status: release candidate for 1.0
+  source: https://github.com/Agent-Card/ai-catalog/blob/19208af2f8adbc0a6457e3ff36ce691a304fbd97/specification/ai-catalog.md
+  commit: 19208af2f8adbc0a6457e3ff36ce691a304fbd97
+  tag: v0.9.0
+  published: https://ai-catalog.io/spec/
+  license: CC-BY-4.0
+sections:
+  TERM: terminology
+  GOAL: design-goals
+  TOP: top-level-structure
+  HOST: host-info
+  ENTRY: catalog-entry
+  NAME: resolving-an-artifact-s-display-name
+  DESC: resolving-an-artifact-s-description
+  VER: resolving-an-artifact-s-version
+  MULTI: multi-version-entries
+  PROJ: catalog-projection
+  PUB: publisher-object
+  TM: trust-manifest
+  CONTRIB: contributor-identity
+  UPDATE: independent-contributions-and-updates
+  VALID: manifest-validity
+  TMOPT: optional-members
+  SUBJ: subject-object
+  TSCHEMA: trust-schema-object
+  ATTEST: attestation-object
+  PROVLINK: provenance-link-object
+  VPROC: verification-procedures
+  FETCH: safe-fetching
+  DIGEST: digest-format
+  SIG: signature-object
+  PROFILE: profile-selection
+  JWS: signed-payload-and-jws-construction
+  ACCEPT: signature-acceptance-and-time
+  COVER: entry-release-coverage
+  DIDWEB: the-did-web-signer-profile
+  DIDALG: jws-algorithm-and-key-requirements
+  DIDKEY: did-document-resolution-and-key-selection
+  VRESULT: verification-result
+  DIDPUB: the-did-web-publisher-profile
+  AUTHZ: catalog-authorization
+  META: publisher-and-policy-metadata
+  INTEG: verifying-artifact-integrity
+  PROVSTMT: provenance-statements
+  NEST: nested-catalog-entries
+  EXTKEY: format-and-key-naming
+  POLICY: policy-urls-extension
+  UNREC: consumer-requirements
+  STABLE: no-stability-guarantee
+  COMPAT: compatibility-rules
+  SVCONS: consumer-behavior
+  SVPROD: producer-behavior
+  LOC: location-independence
+  WELLKNOWN: well-known-uri
+  LINKREL: link-relation-discovery
+  CONF: conformance-levels
+  L1: level-1-minimal-catalog
+  L3: level-3-trusted-catalog
+  LAYERS: trust-layers
+  DEPTH: nested-catalog-depth-and-circular-references
+  SUBST: trust-manifest-substitution
+  TYPO: identifier-typosquatting
+  STALE: stale-attestations
+  EMBED: embedded-content-safety
+  PRIVACY: privacy-considerations
+  IANA: media-type-registration-application-ai-catalog-json
+  CDDL: cddl-schema
+requirements:
+  - id: TERM-1
+    section: terminology
+    strength: MUST NOT
+    role: spec
+    excluded: Defines how the keywords are read; binds no implementation.
+    text: The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT",
+      "RECOMMENDED", "NOT RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted
+      as described in BCP 14 [[RFC2119]] [[RFC8174]] when, and only when, they appear in all
+      capitals, as shown here.
+  - id: GOAL-1
+    section: design-goals
+    strength: MUST
+    role: spec
+    excluded: A design goal of the format, met by the open `type` field.
+    text: "**Artifact Agnosticism**: The catalog MUST be capable of indexing any type of AI artifact
+      without requiring knowledge of the artifact's internal schema."
+  - id: GOAL-2
+    section: design-goals
+    strength: MUST
+    role: spec
+    excluded: Restates ENTRY-1 (`type` is required), which is checked.
+    text: "**Type Identification**: Each catalog entry MUST declare its artifact type using a type
+      identifier, enabling clients to select, filter, and route entries without parsing artifact
+      content."
+  - id: TOP-1
+    section: top-level-structure
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    text: "An AI Catalog document is a JSON object that MUST contain the following members:"
+  - id: TOP-2
+    section: top-level-structure
+    strength: SHOULD
+    role: producer
+    check: document
+    level: 1
+    note: The top-level `additionalSignatures` member.
+    text: Producers SHOULD omit this member.
+  - id: TOP-3
+    section: top-level-structure
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST accept and ignore it regardless of its value.
+  - id: HOST-1
+    section: host-info
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: Applies when `host` is present.
+    text: "It MUST contain:"
+  - id: ENTRY-1
+    section: catalog-entry
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: The members are `identifier` and `type`.
+    text: "It MUST contain the following members:"
+  - id: ENTRY-2
+    section: catalog-entry
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers that do not recognize an identifier scheme MUST treat the value as opaque.
+  - id: ENTRY-3
+    section: catalog-entry
+    strength: SHOULD
+    role: producer
+    check: document
+    level: 1
+    note: "Checked as: the identifier has a URI scheme."
+    text: For open or federated systems, a globally unique absolute URI is RECOMMENDED.
+  - id: ENTRY-4
+    section: catalog-entry
+    strength: SHOULD
+    role: producer
+    check: document
+    level: 1
+    note: "Checked as: the identifier uses `urn:air`, in the form `urn:air:{publisher}:{name}[:{kind}]`
+      with a domain as `{publisher}`."
+    text: An artifact publisher that wants an entry identifier to be preserved when the artifact appears
+      in other catalogs SHOULD use the AI Catalog-specific `urn:air` naming structure with its own
+      domain in the `{publisher}` segment.
+  - id: ENTRY-5
+    section: catalog-entry
+    strength: MUST
+    role: operator
+    excluded: Binds a catalog operator incorporating entries from elsewhere; one document cannot show
+      where an entry came from.
+    text: A catalog operator incorporating an entry for the first time with a publisher-authorized
+      `urn:air` identifier MUST preserve that identifier exactly.
+  - id: ENTRY-6
+    section: catalog-entry
+    strength: SHOULD
+    role: producer
+    check: document
+    level: 1
+    note: Reported as a notice, since only the publisher knows whether a known type applies.
+    text: 'However, to ensure interoperability, it is RECOMMENDED to use one of the following recognized
+      "known types" in the ecosystem when applicable, partitioned by their respective governance
+      boundaries:'
+  - id: ENTRY-7
+    section: catalog-entry
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: The members are `url` and `data`.
+    text: "A Catalog Entry MUST contain exactly one of the following members to provide the artifact
+      content:"
+  - id: ENTRY-8
+    section: catalog-entry
+    strength: SHOULD
+    role: producer
+    check: fetch
+    level: 1
+    text: The document served at this URL SHOULD be served with the media type declared in the `type`
+      field.
+  - id: ENTRY-9
+    section: catalog-entry
+    strength: SHOULD
+    role: producer
+    excluded: Restates ENTRY-10, the same rule seen from the other side, which is checked.
+    text: This field SHOULD be set only when the referenced artifact does not already carry its own
+      canonical human-readable name — for example a raw dataset (`application/parquet`), a model
+      blob, a skill bundle (`application/agent-skills+zip`), or an Agent Plugin bundle
+      (`application/agent-plugins+zip`), none of which directly expose a self-describing name
+      without processing the artifact.
+  - id: ENTRY-10
+    section: catalog-entry
+    strength: SHOULD
+    role: producer
+    check: fetch
+    level: 1
+    note: Checked for MCP Server Cards (`title`) and A2A Agent Cards (`name`).
+    text: When the referenced artifact does carry such a name — for example the `name` field of an A2A
+      Agent Card or the `title` field of an MCP Server Card — that artifact is the authoritative
+      source and `displayName` SHOULD be omitted to avoid duplicating a value that can drift out of
+      sync.
+  - id: ENTRY-11
+    section: catalog-entry
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: "When `displayName` *is* present, however, it takes precedence: it is the authoritative value
+      for display, and a consumer SHOULD render it as given even when it differs from a name carried
+      by the referenced artifact."
+  - id: ENTRY-12
+    section: catalog-entry
+    strength: SHOULD
+    role: producer
+    check: fetch
+    level: 1
+    note: Checked for MCP Server Cards and A2A Agent Cards.
+    text: "Like `displayName`, `description` is OPTIONAL and follows the same authoritative-source rule:
+      when the referenced artifact carries its own canonical description — for example the
+      `description` field of an A2A Agent Card or an MCP Server Card — that artifact is the
+      authoritative source and entry `description` SHOULD be omitted to avoid duplicating a value
+      that can drift out of sync."
+  - id: ENTRY-13
+    section: catalog-entry
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: "When entry `description` *is* present, however, it takes precedence: a consumer SHOULD render
+      it as given even when it differs from a description carried by the referenced artifact, which
+      is how a publisher provides a listing-specific blurb."
+  - id: ENTRY-14
+    section: catalog-entry
+    strength: SHOULD
+    role: producer
+    check: document
+    level: 1
+    text: "[Semantic Versioning](https://semver.org/) is RECOMMENDED but not required."
+  - id: ENTRY-15
+    section: catalog-entry
+    strength: SHOULD
+    role: producer
+    check: fetch
+    level: 1
+    note: An entry with `trustManifests` may restate the version to sign it, so it is not reported.
+    text: Like `displayName` and `description`, `version` can restate a value the referenced artifact
+      already carries (an A2A Agent Card `version`, an MCP Server Card `version`), and when a single
+      entry references such an artifact the entry `version` SHOULD be omitted to avoid drift — the
+      consumer can read it from the artifact.
+  - id: ENTRY-16
+    section: catalog-entry
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    text: "Unlike `displayName` and `description`, however, `version` is not merely cosmetic: it is part
+      of the entry's uniqueness key, so it is REQUIRED when a catalog lists multiple versions of the
+      same `identifier` (see [Multi-Version Entries](#multi-version-entries))."
+  - id: ENTRY-17
+    section: catalog-entry
+    strength: SHOULD
+    role: producer
+    check: fetch
+    level: 1
+    text: A present `version` is used for catalog-level sorting and selection rather than as a free-form
+      display override, so it SHOULD equal the version the referenced artifact reports; an entry
+      `version` that contradicts the artifact's own version is a publishing error, not a deliberate
+      override.
+  - id: ENTRY-18
+    section: catalog-entry
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: "Checked as: no duplicate member names, no lone surrogates, and integers within the range IEEE
+      754 doubles represent exactly."
+    text: Inline `data` MUST satisfy JCS's input requirements for artifact verification to succeed.
+  - id: NAME-1
+    section: resolving-an-artifact-s-display-name
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: "To obtain a human-readable name, a consumer SHOULD resolve one in the following order:"
+  - id: NAME-2
+    section: resolving-an-artifact-s-display-name
+    strength: SHOULD NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: A consumer SHOULD NOT dereference an artifact at render time solely to obtain a name.
+  - id: NAME-3
+    section: resolving-an-artifact-s-display-name
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: A registry, directory, or other service built on top of a catalog SHOULD resolve the name once
+      at ingestion — alongside any other derived metadata it attaches, such as relevance scores or
+      tags — and cache the result, rather than fetching artifacts on the rendering path.
+  - id: DESC-1
+    section: resolving-an-artifact-s-description
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: "It SHOULD resolve one in the following order:"
+  - id: DESC-2
+    section: resolving-an-artifact-s-description
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Unlike a name, a description has no identifier-derived fallback; a consumer SHOULD simply
+      render the entry without one.
+  - id: DESC-3
+    section: resolving-an-artifact-s-description
+    strength: SHOULD NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: As with name resolution, a consumer SHOULD NOT dereference an artifact at render time solely
+      to obtain a description.
+  - id: DESC-4
+    section: resolving-an-artifact-s-description
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: A registry, directory, or other service built on top of a catalog SHOULD resolve the
+      description once at ingestion and cache the result, rather than fetching artifacts on the
+      rendering path.
+  - id: VER-1
+    section: resolving-an-artifact-s-version
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: "To obtain a version, a consumer SHOULD resolve one in the following order:"
+  - id: VER-2
+    section: resolving-an-artifact-s-version
+    strength: MUST
+    role: producer
+    excluded: Restates ENTRY-16, which is checked.
+    text: Within a multi-version listing it is REQUIRED and, combined with `identifier`, uniquely
+      addresses the entry.
+  - id: VER-3
+    section: resolving-an-artifact-s-version
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: A consumer that needs to order such entries SHOULD fall back to `updatedAt`, consistent with
+      [Multi-Version Entries](#multi-version-entries).
+  - id: VER-4
+    section: resolving-an-artifact-s-version
+    strength: SHOULD NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: When both the entry and the referenced artifact carry a `version` and they disagree, the entry
+      `version` is authoritative for catalog-level sorting and selection; the mismatch is a
+      publishing error (it breaks latest-selection) that a consumer MAY surface but SHOULD NOT
+      resolve by silently preferring the artifact's value.
+  - id: VER-5
+    section: resolving-an-artifact-s-version
+    strength: SHOULD NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: As with name and description resolution, a consumer SHOULD NOT dereference an artifact at
+      render time solely to obtain a version.
+  - id: VER-6
+    section: resolving-an-artifact-s-version
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: A registry, directory, or other service built on top of a catalog SHOULD resolve the version
+      once at ingestion and cache the result, rather than fetching artifacts on the rendering path.
+  - id: MULTI-1
+    section: multi-version-entries
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    text: When `version` is present, the combination of `identifier` and `version` MUST be unique within
+      the catalog.
+  - id: MULTI-2
+    section: multi-version-entries
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    text: When `version` is absent, `identifier` alone MUST be unique.
+  - id: MULTI-3
+    section: multi-version-entries
+    strength: SHOULD
+    role: producer
+    excluded: Stability across versions needs the catalog's history; one document cannot show it.
+    text: The `identifier` SHOULD be stable across versions.
+  - id: MULTI-4
+    section: multi-version-entries
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Clients that need only the latest version SHOULD sort entries sharing the same `identifier` by
+      `version` (when parseable as a semantic version) or by `updatedAt`, and select the most
+      recent.
+  - id: MULTI-5
+    section: multi-version-entries
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Clients that need a specific version SHOULD match on both `identifier` and `version`.
+  - id: PROJ-1
+    section: catalog-projection
+    strength: MUST
+    role: operator
+    excluded: Binds a catalog operator incorporating entries from elsewhere; one document cannot show
+      where an entry came from.
+    text: "When incorporating a projected entry for the first time, a catalog operator MUST select its
+      identifier by applying these rules in order:"
+  - id: PROJ-2
+    section: catalog-projection
+    strength: MUST
+    role: operator
+    excluded: Binds a catalog operator incorporating entries from elsewhere; one document cannot show
+      where an entry came from.
+    text: If the source contains a publisher-authorized `urn:air` identifier, the operator MUST preserve
+      it exactly.
+  - id: PROJ-3
+    section: catalog-projection
+    strength: SHOULD
+    role: operator
+    excluded: Binds a catalog operator incorporating entries from elsewhere; one document cannot show
+      where an entry came from.
+    text: When assigning a new identifier, an operator that becomes the artifact publisher SHOULD use
+      `urn:air` with its own domain in the `{publisher}` segment.
+  - id: PROJ-4
+    section: catalog-projection
+    strength: SHOULD
+    role: operator
+    excluded: Binds a catalog operator incorporating entries from elsewhere; one document cannot show
+      where an entry came from.
+    text: An operator acting as an authorized delegate SHOULD use `urn:air` with the delegating
+      publisher's domain in that segment.
+  - id: PROJ-5
+    section: catalog-projection
+    strength: MUST
+    role: operator
+    excluded: Binds a catalog operator incorporating entries from elsewhere; one document cannot show
+      where an entry came from.
+    text: An operator that is neither the artifact publisher nor its authorized delegate MUST use a
+      non-`urn:air` identifier under its own control.
+  - id: PROJ-6
+    section: catalog-projection
+    strength: MUST NOT
+    role: operator
+    excluded: Binds a catalog operator incorporating entries from elsewhere; one document cannot show
+      where an entry came from.
+    text: A catalog operator MUST NOT infer publisher authorization from the artifact's URL or an
+      unsigned `publisher` field.
+  - id: PROJ-7
+    section: catalog-projection
+    strength: MUST NOT
+    role: operator
+    excluded: Stability across versions needs the catalog's history; one document cannot show it.
+    text: It MUST remain stable across versions, source-coordinate changes, and retrieval-URL changes,
+      and MUST NOT be reassigned to another artifact.
+  - id: PROJ-8
+    section: catalog-projection
+    strength: SHOULD
+    role: operator
+    excluded: Binds a catalog operator incorporating entries from elsewhere; one document cannot show
+      where an entry came from.
+    text: If retained, they SHOULD be stored in a namespaced entry extension.
+  - id: PUB-1
+    section: publisher-object
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: Applies when `publisher` is present. The members are `identifier` and `displayName`.
+    text: "It MUST contain:"
+  - id: TM-1
+    section: trust-manifest
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    text: Each manifest MUST contain `contributor` and MAY contain the optional members below.
+  - id: CONTRIB-1
+    section: contributor-identity
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    text: "`contributor` MUST be an absolute URI [[RFC3986]] identifying the contributor asserting this
+      manifest's references or claims, not necessarily the issuer of every referenced attestation or
+      provenance statement."
+  - id: CONTRIB-2
+    section: contributor-identity
+    strength: SHOULD
+    role: producer
+    excluded: Whether a URI is the author's existing identity is a judgment.
+    text: Authors SHOULD use their existing identity URI, such as `did:web:assessor.example`.
+  - id: CONTRIB-3
+    section: contributor-identity
+    strength: MUST
+    role: operator
+    excluded: Binds whoever forwards a Trust Manifest; one document cannot show it was forwarded.
+    text: The value MUST be preserved exactly when forwarding a Trust Manifest.
+  - id: CONTRIB-4
+    section: contributor-identity
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST NOT infer authentication from its spelling or mere presence.
+  - id: CONTRIB-5
+    section: contributor-identity
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    text: A signed Trust Manifest's `signature.signer` MUST exactly equal `contributor`.
+  - id: CONTRIB-6
+    section: contributor-identity
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST compare these decoded JSON strings case-sensitively, without URI normalization.
+  - id: UPDATE-1
+    section: independent-contributions-and-updates
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: When choosing among updates for the same contributor and release, consumers SHOULD prefer the
+      manifest with the most recent acceptable signature, comparing authenticated `issuedAt`
+      instants.
+  - id: UPDATE-2
+    section: independent-contributions-and-updates
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Equal issuance times with different content require local selection policy; consumers MUST NOT
+      infer an ordering from array order.
+  - id: UPDATE-3
+    section: independent-contributions-and-updates
+    strength: SHOULD
+    role: operator
+    excluded: Binds a registry choosing among manifests; one document cannot show the choice.
+    text: Registries SHOULD preserve the chosen manifest and its signature rather than merge separately
+      signed contents.
+  - id: VALID-1
+    section: manifest-validity
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    text: "A Trust Manifest MUST contain at least one of: a `signature`, a `trustSchema`, a non-empty
+      `attestations` array, a non-empty `provenance` array, or a non-empty `extensions` object."
+  - id: VALID-2
+    section: manifest-validity
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    text: A manifest containing a `signature` MUST also contain `subject`.
+  - id: VALID-3
+    section: manifest-validity
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: "Checked as: no manifest holds only `contributor`."
+    text: Empty manifests MUST be omitted.
+  - id: TMOPT-1
+    section: optional-members
+    strength: MUST
+    role: producer
+    excluded: Restates VALID-2, which is checked.
+    text: REQUIRED when `signature` is present.
+  - id: TMOPT-2
+    section: optional-members
+    strength: SHOULD
+    role: producer
+    check: document
+    level: 1
+    note: A Trust Manifest's `additionalSignatures` member.
+    text: Producers SHOULD omit this member.
+  - id: TMOPT-3
+    section: optional-members
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST accept and ignore it regardless of its value.
+  - id: SUBJ-1
+    section: subject-object
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: The members are `identifier`, `type`, and `digest`.
+    text: "It MUST contain:"
+  - id: SUBJ-2
+    section: subject-object
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    text: It MUST exactly equal the containing entry's `identifier`.
+  - id: SUBJ-3
+    section: subject-object
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    text: It MUST exactly equal the containing entry's `type`.
+  - id: SUBJ-4
+    section: subject-object
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    text: It MUST exactly equal the containing entry's `digest`, which MUST be present when an entry
+      carries a signed Trust Manifest.
+  - id: SUBJ-5
+    section: subject-object
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    text: "`subject.version` MUST be present exactly when `entry.version` is present, and its value MUST
+      exactly equal `entry.version`."
+  - id: TSCHEMA-1
+    section: trust-schema-object
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: The members are `identifier` and `version`.
+    text: "It MUST contain:"
+  - id: ATTEST-1
+    section: attestation-object
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: The members are `type` and `uri`.
+    text: "It MUST contain:"
+  - id: PROVLINK-1
+    section: provenance-link-object
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: The members are `relation` and `sourceId`.
+    text: "It MUST contain:"
+  - id: VPROC-1
+    section: verification-procedures
+    strength: MUST
+    role: profile
+    excluded: Binds whoever defines a signer profile, not a catalog.
+    text: A signer profile MUST define permitted signer identities, key discovery and authorization,
+      algorithms, JWS header requirements, validity checks, and any authority it establishes.
+  - id: VPROC-2
+    section: verification-procedures
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST NOT authenticate an identity using an unsupported profile.
+  - id: FETCH-1
+    section: safe-fetching
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: "Consumers performing verification MUST:"
+  - id: FETCH-2
+    section: safe-fetching
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers SHOULD prefer inline `data:` attestations and Data-URI logos to avoid leaking
+      verification activity to third-party endpoints.
+  - id: DIGEST-1
+    section: digest-format
+    strength: SHOULD
+    role: producer
+    check: document
+    level: 1
+    note: Also checks the `algorithm:hex-value` form, with lowercase hex of the length the algorithm
+      produces.
+    text: Producers SHOULD use SHA-256 [[RFC6234]] or stronger.
+  - id: DIGEST-2
+    section: digest-format
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST reject digest values using algorithms shorter than SHA-256.
+  - id: DIGEST-3
+    section: digest-format
+    strength: MUST
+    role: producer
+    definition: true
+    check: document
+    level: 1
+    note: "A definition: normative without a keyword. Checked on every digest in the catalog."
+    text: Digests in this specification use the format `algorithm:hex-value`, where `algorithm` is a
+      hash algorithm identifier and `hex-value` is the lowercase hexadecimal encoding of the hash
+      output.
+  - id: SIG-1
+    section: signature-object
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: Applies to the catalog's and each Trust Manifest's `signature`.
+    text: A Signature object MUST contain `signer`, `profile`, `issuedAt`, and `jws`, and MAY contain
+      `expiresAt`.
+  - id: SIG-2
+    section: signature-object
+    strength: MUST
+    role: profile
+    excluded: Binds whoever defines a signer profile, not a catalog.
+    text: The applicable signer profile MUST establish that the verification key is authorized to sign
+      for this identity.
+  - id: SIG-3
+    section: signature-object
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST NOT infer authentication or authority from this field alone.
+  - id: SIG-4
+    section: signature-object
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    text: If present it MUST denote an instant later than `issuedAt`.
+  - id: SIG-5
+    section: signature-object
+    strength: MUST
+    role: signer
+    definition: true
+    check: document
+    level: 3
+    note: "A definition: normative without a keyword. Checked as: `jws` is two base64url segments around
+      an empty payload, and the protected header decodes to a JSON object."
+    text: The stored form is `encodedProtectedHeader..encodedSignature`.
+  - id: PROFILE-1
+    section: profile-selection
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST select the verification procedure named by `profile`, and MUST require that it
+      is both supported and permitted by local policy.
+  - id: PROFILE-2
+    section: profile-selection
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: They MUST NOT infer another profile from `signer`, JWS headers, or other metadata, or fall
+      back to another procedure if the selected profile is unsupported, disallowed, or fails
+      verification.
+  - id: PROFILE-3
+    section: profile-selection
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Such a signature MUST NOT count as a verified endorsement; other manifests are evaluated
+      independently.
+  - id: PROFILE-4
+    section: profile-selection
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: "Checked as: `signature.profile` is `did-web-v1` or an absolute URI."
+    text: Independently defined profiles MUST use absolute URI identifiers [[RFC3986]] under the profile
+      author's control.
+  - id: PROFILE-5
+    section: profile-selection
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Profile identifiers MUST be compared exactly and case-sensitively, without URI normalization.
+  - id: PROFILE-6
+    section: profile-selection
+    strength: MUST NOT
+    role: profile
+    excluded: Binds whoever defines a signer profile, not a catalog.
+    text: It MUST NOT be reused for a different set of requirements.
+  - id: PROFILE-7
+    section: profile-selection
+    strength: MUST
+    role: profile
+    excluded: Binds whoever defines a signer profile, not a catalog.
+    text: The selected profile MUST authenticate the exact `signer` value using its specified
+      key-authorization and verification rules.
+  - id: PROFILE-8
+    section: profile-selection
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST also apply the coverage and authority checks required for the intended
+      endorsement.
+  - id: JWS-1
+    section: signed-payload-and-jws-construction
+    strength: MUST
+    role: signer
+    pending: verify
+    reason: Level 3 signing is not checked yet.
+    level: 3
+    text: All other members and values MUST be retained, including `signature.signer`,
+      `signature.profile`, `signature.issuedAt`, optional `signature.expiresAt`, and unrecognized
+      members.
+  - id: JWS-2
+    section: signed-payload-and-jws-construction
+    strength: MUST NOT
+    role: signer
+    pending: verify
+    reason: Level 3 signing is not checked yet.
+    level: 3
+    text: Ignoring an unrecognized field's meaning MUST NOT remove it from the payload.
+  - id: JWS-3
+    section: signed-payload-and-jws-construction
+    strength: MUST
+    role: signer
+    pending: verify
+    reason: Level 3 signing is not checked yet.
+    level: 3
+    text: The payload MUST satisfy JCS's I-JSON constraints; parsers MUST reject duplicate JSON member
+      names rather than silently discard one.
+  - id: JWS-4
+    section: signed-payload-and-jws-construction
+    strength: SHOULD
+    role: signer
+    pending: document
+    reason: Level 3 signing is not checked yet.
+    level: 3
+    text: Large integers that cannot round-trip as IEEE 754 doubles SHOULD be encoded as strings.
+  - id: JWS-5
+    section: signed-payload-and-jws-construction
+    strength: MUST
+    role: signer
+    level: 3
+    check: document
+    note: Checked by decoding each signature's protected header.
+    text: The protected header MUST contain `alg` and `typ`.
+  - id: JWS-6
+    section: signed-payload-and-jws-construction
+    strength: MUST
+    role: signer
+    level: 3
+    check: document
+    note: "`ai-catalog-trust-manifest+jws` in a Trust Manifest, `ai-catalog+jws` on the catalog."
+    text: "The `typ` value MUST exactly match the kind of containing object:"
+  - id: JWS-7
+    section: signed-payload-and-jws-construction
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST reject a missing or mismatched `typ`.
+  - id: JWS-8
+    section: signed-payload-and-jws-construction
+    strength: MUST NOT
+    role: signer
+    level: 3
+    check: document
+    note: "Checked as: no signature's protected header has `alg` `none`."
+    text: The `alg` value `none` MUST NOT be accepted.
+  - id: JWS-9
+    section: signed-payload-and-jws-construction
+    strength: MUST NOT
+    role: signer
+    level: 3
+    check: document
+    text: "The protected header MUST NOT contain `b64`: the unencoded-payload option of [[RFC7797]] is
+      not used."
+  - id: ACCEPT-1
+    section: signature-acceptance-and-time
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST validate the Signature object's structure, profile selection, payload, JWS, and
+      selected signer profile before accepting an endorsement.
+  - id: ACCEPT-2
+    section: signature-acceptance-and-time
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: They MUST validate timestamp syntax and compare timestamps as instants, not strings.
+  - id: ACCEPT-3
+    section: signature-acceptance-and-time
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST NOT accept an endorsement before `issuedAt` or at or after `expiresAt`, when
+      present.
+  - id: ACCEPT-4
+    section: signature-acceptance-and-time
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: An invalid, unsupported, or expired signature MUST NOT count as a verified endorsement.
+  - id: ACCEPT-5
+    section: signature-acceptance-and-time
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST limit authentication claims based on a Trust Manifest to its signed contents
+      and successfully verified subject bindings.
+  - id: COVER-1
+    section: entry-release-coverage
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: "Before relying on a Trust Manifest's signature as an endorsement of an entry's artifact
+      release or of claims about that release, consumers MUST require:"
+  - id: COVER-2
+    section: entry-release-coverage
+    strength: MUST
+    role: producer
+    excluded: Restates SUBJ-4, which is checked.
+    text: The entry MUST contain `digest`.
+  - id: COVER-3
+    section: entry-release-coverage
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: These comparisons are between decoded JSON strings and MUST be case-sensitive, without URI
+      normalization.
+  - id: COVER-4
+    section: entry-release-coverage
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST NOT combine fields from different manifests to establish binding.
+  - id: COVER-5
+    section: entry-release-coverage
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: The consumer MUST also verify the artifact bytes against the matching digest using [Verifying
+      Artifact Integrity](#verifying-artifact-integrity).
+  - id: DIDWEB-1
+    section: the-did-web-signer-profile
+    strength: MUST
+    role: signer
+    level: 3
+    check: document
+    note: Applies to signatures whose `profile` is `did-web-v1`, as do DIDWEB-2 and the DIDALG checks.
+    text: The Signature object's `signer` MUST be a root `did:web` DID.
+  - id: DIDWEB-2
+    section: the-did-web-signer-profile
+    strength: MUST
+    role: signer
+    level: 3
+    check: document
+    text: Its domain MUST be lowercase ASCII, with no port, IP address, trailing root dot, or Unicode
+      U-label; IDNA A-labels are permitted [[DIDWEB]] [[RFC5890]] [[RFC5891]].
+  - id: DIDWEB-3
+    section: the-did-web-signer-profile
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds implementations that add profiles, not a catalog.
+    text: Implementations MAY support additional profiles by agreement; they MUST NOT silently apply
+      these rules to a different mechanism.
+  - id: DIDALG-1
+    section: jws-algorithm-and-key-requirements
+    strength: MUST
+    role: signer
+    level: 3
+    check: document
+    note: Also checks that the signature segment is 64 bytes, the size RFC 7518 gives an ES256 signature.
+    text: Producers conforming to the `did:web` Signer Profile MUST use ES256 as defined by [[RFC7518]].
+  - id: DIDALG-2
+    section: jws-algorithm-and-key-requirements
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers implementing the `did:web` Signer Profile MUST support ES256 and MUST reject any
+      other `alg` value when applying that profile.
+  - id: DIDALG-3
+    section: jws-algorithm-and-key-requirements
+    strength: MUST
+    role: signer
+    level: 3
+    check: document
+    text: The protected JWS header MUST contain `kid`, identifying the verification method that
+      authorizes the signature.
+  - id: DIDALG-4
+    section: jws-algorithm-and-key-requirements
+    strength: MUST NOT
+    role: signer
+    level: 3
+    check: document
+    text: It MUST NOT contain `jku`, `jwk`, `x5u`, or `x5c`; a verifier applying the `did:web` Signer
+      Profile selects key material only through the issuer's DID document, never from a key source
+      named by the signature itself.
+  - id: DIDALG-5
+    section: jws-algorithm-and-key-requirements
+    strength: MUST
+    role: signer
+    level: 3
+    check: document
+    text: The protected `kid` MUST be an absolute DID URL consisting of the exact `signer` value
+      followed by a non-empty fragment, with no path or query.
+  - id: DIDALG-6
+    section: jws-algorithm-and-key-requirements
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: A mismatch MUST fail verification under this profile.
+  - id: DIDKEY-1
+    section: did-document-resolution-and-key-selection
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: The verifier MUST resolve `signer` according to the `did:web` method [[DIDWEB]] and process
+      the result as a DID document according to DID Core [[DIDCORE]].
+  - id: DIDKEY-2
+    section: did-document-resolution-and-key-selection
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: The resolution MUST satisfy the safe-fetching requirements in [Safe Fetching](#safe-fetching).
+  - id: DIDKEY-3
+    section: did-document-resolution-and-key-selection
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: The verification method selected by `kid` MUST be authorized by the DID document's
+      `assertionMethod` verification relationship.
+  - id: DIDKEY-4
+    section: did-document-resolution-and-key-selection
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: After resolving relative DID URLs as defined by DID Core, the verifier MUST select exactly one
+      verification method whose `id` exactly equals `kid`.
+  - id: DIDKEY-5
+    section: did-document-resolution-and-key-selection
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: A key used only for another relationship, such as `authentication` or `keyAgreement`, MUST NOT
+      be accepted.
+  - id: DIDKEY-6
+    section: did-document-resolution-and-key-selection
+    strength: MUST
+    role: signer
+    pending: verify
+    reason: Level 3 signing is not checked yet.
+    level: 3
+    text: The selected verification method's `controller` MUST exactly equal `signer`; the `did:web`
+      Signer Profile does not support a verification method controlled by another DID.
+  - id: DIDKEY-7
+    section: did-document-resolution-and-key-selection
+    strength: MUST
+    role: signer
+    pending: verify
+    reason: Level 3 signing is not checked yet.
+    level: 3
+    text: The selected verification method MUST contain `publicKeyJwk` [[RFC7517]].
+  - id: DIDKEY-8
+    section: did-document-resolution-and-key-selection
+    strength: MUST
+    role: signer
+    pending: verify
+    reason: Level 3 signing is not checked yet.
+    level: 3
+    text: "The JWK MUST describe a P-256 elliptic-curve public key: `kty` MUST be `EC`, `crv` MUST be
+      `P-256`, and `x` and `y` MUST contain valid curve coordinates."
+  - id: DIDKEY-9
+    section: did-document-resolution-and-key-selection
+    strength: MUST NOT
+    role: signer
+    pending: verify
+    reason: Level 3 signing is not checked yet.
+    level: 3
+    text: It MUST NOT contain private key material.
+  - id: DIDKEY-10
+    section: did-document-resolution-and-key-selection
+    strength: MUST
+    role: signer
+    pending: verify
+    reason: Level 3 signing is not checked yet.
+    level: 3
+    text: When present, `alg` MUST be `ES256`, `use` MUST be `sig`, and `key_ops` MUST permit `verify`.
+  - id: VRESULT-1
+    section: verification-result
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Failure MUST NOT be treated as a verified endorsement.
+  - id: DIDPUB-1
+    section: the-did-web-publisher-profile
+    strength: MUST
+    role: signer
+    pending: document
+    reason: Level 3 signing is not checked yet.
+    level: 3
+    text: "**Publisher authorization:** The entry MUST use the standard `urn:air` syntax."
+  - id: DIDPUB-2
+    section: the-did-web-publisher-profile
+    strength: MUST
+    role: signer
+    pending: document
+    reason: Level 3 signing is not checked yet.
+    level: 3
+    text: Its `{publisher}` component is the text following `urn:air:` and preceding the next colon and
+      MUST satisfy the root `did:web` domain restrictions above.
+  - id: DIDPUB-3
+    section: the-did-web-publisher-profile
+    strength: MUST
+    role: signer
+    pending: verify
+    reason: Level 3 signing is not checked yet.
+    level: 3
+    text: The authenticated signer identity MUST exactly match `did:web:` followed by that component.
+  - id: DIDPUB-4
+    section: the-did-web-publisher-profile
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Subdomain, suffix, and organizational-ownership heuristics MUST NOT be used.
+  - id: DIDPUB-5
+    section: the-did-web-publisher-profile
+    strength: MUST
+    role: signer
+    pending: verify
+    reason: Level 3 signing is not checked yet.
+    level: 3
+    text: "**Release binding:** The signature MUST satisfy [Entry Release
+      Coverage](#entry-release-coverage), including the signed subject matching the entry and
+      verification of the artifact bytes against `entry.digest`."
+  - id: AUTHZ-1
+    section: catalog-authorization
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: A separate profile or configured policy MUST identify authorized operators before a consumer
+      accepts a signature as a catalog endorsement.
+  - id: META-1
+    section: publisher-and-policy-metadata
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST distinguish publisher-authenticated metadata from metadata supplied or endorsed
+      by another entity.
+  - id: INTEG-1
+    section: verifying-artifact-integrity
+    strength: MUST
+    role: consumer
+    check: fetch
+    level: 1
+    note: "Run here as a consumer would: a `digest` that does not match the bytes served at `url` fails
+      every consumer's verification."
+    text: A mismatch MUST fail artifact verification.
+  - id: INTEG-2
+    section: verifying-artifact-integrity
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: The optional `provenance[].sourceDigest` identifies an upstream source and MUST NOT be
+      substituted for the digest of this entry's artifact.
+  - id: PROVSTMT-1
+    section: provenance-statements
+    strength: MUST
+    role: profile
+    excluded: Binds the format of a provenance statement, not the catalog.
+    text: The statement's own format MUST define its signature algorithm, signer authorization,
+      key-selection rules, and verification procedure.
+  - id: NEST-1
+    section: nested-catalog-entries
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Clients processing nested catalogs SHOULD impose a maximum nesting depth to prevent circular
+      references.
+  - id: NEST-2
+    section: nested-catalog-entries
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: A depth limit of 4 is RECOMMENDED.
+  - id: NEST-3
+    section: nested-catalog-entries
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Implementations MAY support deeper nesting but SHOULD document their limit.
+  - id: EXTKEY-1
+    section: format-and-key-naming
+    strength: MUST
+    role: producer
+    excluded: Whether a key names its extension is the publisher's call; EXTKEY-2 checks the key's form.
+    text: Each key in the object MUST represent the extension type (namespace), and the corresponding
+      value contains the extension data.
+  - id: EXTKEY-2
+    section: format-and-key-naming
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: Applies to `extensions` on the catalog, each entry, and each Trust Manifest.
+    text: "To avoid collisions between independent publishers, the keys MUST be a valid URL or a
+      reverse-DNS string:"
+  - id: EXTKEY-3
+    section: format-and-key-naming
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers that do not recognize an extension key MUST ignore it without throwing an error.
+  - id: POLICY-1
+    section: policy-urls-extension
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    text: Its value MUST be a JSON object.
+  - id: POLICY-2
+    section: policy-urls-extension
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers fetching those documents MUST follow [Safe Fetching](#safe-fetching).
+  - id: UNREC-1
+    section: consumer-requirements
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: MUST NOT reject a document because it contains unrecognized members.
+  - id: UNREC-2
+    section: consumer-requirements
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: MUST NOT derive semantics defined by this specification from an unrecognized member.
+  - id: UNREC-3
+    section: consumer-requirements
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: An unrecognized member MUST NOT alter how a consumer interprets `identifier`, `type`, `url`,
+      `data`, `version`, or any other defined member.
+  - id: UNREC-4
+    section: consumer-requirements
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: SHOULD preserve unrecognized members, unchanged, when republishing or re-serializing a catalog
+      or entry, for example when a catalog operator incorporates an entry from another catalog.
+  - id: UNREC-5
+    section: consumer-requirements
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: MUST retain unrecognized members when constructing a signed payload, as required by [Signed
+      Payload and JWS Construction](#signed-payload-and-jws-construction).
+  - id: UNREC-6
+    section: consumer-requirements
+    strength: MUST NOT
+    role: tooling
+    excluded: Binds conformance tooling. This suite reports unrecognized members as STABLE-1 warnings
+      and never fails on them.
+    text: Conformance tooling MAY report unrecognized members as informational output, for example to
+      surface a misspelled member name, but MUST NOT treat their presence as a conformance failure.
+  - id: STABLE-1
+    section: no-stability-guarantee
+    strength: SHOULD
+    role: producer
+    check: document
+    level: 1
+    note: "Checked as: a warning for each member the spec does not define, outside `extensions`."
+    text: Producers that want a stable, publisher-owned place for custom data SHOULD use
+      [`extensions`](#extensions), whose namespaced keys cannot collide with members this
+      specification defines later.
+  - id: COMPAT-1
+    section: compatibility-rules
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST ignore unrecognized members as described in [Unrecognized
+      Members](#unrecognized-members).
+  - id: COMPAT-2
+    section: compatibility-rules
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers that do not support the major version SHOULD reject the document with an informative
+      error rather than silently misinterpreting it.
+  - id: SVCONS-1
+    section: consumer-behavior
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: "Consumers SHOULD:"
+  - id: SVPROD-1
+    section: producer-behavior
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: "Checked as: `specVersion` equals the version of the spec this registry covers."
+    text: Producers MUST set `specVersion` to the version of this specification they implement.
+  - id: SVPROD-2
+    section: producer-behavior
+    strength: SHOULD NOT
+    role: producer
+    excluded: Restates SVPROD-1, which requires the exact version, which is checked.
+    text: Producers SHOULD NOT set `specVersion` to a version higher than they actually conform to.
+  - id: LOC-1
+    section: location-independence
+    strength: SHOULD
+    role: producer
+    check: fetch
+    level: 1
+    text: When served over HTTP, the document SHOULD be served with the media type
+      `application/ai-catalog+json`.
+  - id: WELLKNOWN-1
+    section: well-known-uri
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Clients performing domain-level discovery SHOULD attempt to retrieve this well-known URL.
+  - id: WELLKNOWN-2
+    section: well-known-uri
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: If a valid AI Catalog document is returned, the client SHOULD use the entries' `url` values to
+      retrieve individual artifacts.
+  - id: LINKREL-1
+    section: link-relation-discovery
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: '**Agent-driven discovery.** AI agents that interact with websites (for example, agents
+      following user instructions to "find tools on this site" or browsing on behalf of a user)
+      SHOULD check for the `ai-catalog` link relation on the target website.'
+  - id: CONF-1
+    section: conformance-levels
+    strength: MUST
+    role: spec
+    excluded: Defines what a level means; the report computes the level from the other results.
+    text: Implementations MUST satisfy all requirements of their declared level.
+  - id: L1-1
+    section: level-1-minimal-catalog
+    strength: MUST
+    role: producer
+    excluded: Restates VALID-1, which is checked.
+    text: Each manifest in `trustManifests`, when present at any level, MUST satisfy [Manifest
+      Validity](#manifest-validity).
+  - id: L3-1
+    section: level-3-trusted-catalog
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST authenticate signers, verify signatures and endorsement times, enforce [Entry
+      Release Coverage](#entry-release-coverage), and verify artifact content against `entry.digest`
+      before relying on signed claims.
+  - id: L3-2
+    section: level-3-trusted-catalog
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Before relying on their claims, consumers MUST verify each contributor's signature and the
+      subject binding to the same entry release.
+  - id: L3-3
+    section: level-3-trusted-catalog
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MUST distinguish the initial interoperable `did:web` profiles from other profiles
+      supported by private agreement.
+  - id: L3-4
+    section: level-3-trusted-catalog
+    strength: SHOULD
+    role: producer
+    pending: verify
+    reason: Catalog signatures are not checked yet.
+    level: 3
+    text: SHOULD provide catalog-level integrity through a content-addressed channel or a signature
+      satisfying [Catalog Snapshot Coverage](#catalog-snapshot-coverage) and an applicable
+      operator-authorization policy.
+  - id: L3-5
+    section: level-3-trusted-catalog
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers MAY ignore fields defined at higher conformance levels and SHOULD gracefully handle
+      their absence.
+  - id: LAYERS-1
+    section: trust-layers
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers that rely on trust metadata for security decisions SHOULD implement at least Layer 2
+      (signature verification).
+  - id: LAYERS-2
+    section: trust-layers
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers that only implement Layer 0 or Layer 1 SHOULD treat Trust Manifest content as
+      advisory, not authoritative.
+  - id: DEPTH-1
+    section: nested-catalog-depth-and-circular-references
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Clients processing nested catalogs SHOULD enforce a maximum recursion depth to prevent
+      denial-of-service attacks via deeply nested or circular catalog references.
+  - id: DEPTH-2
+    section: nested-catalog-depth-and-circular-references
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: A maximum depth of 4 is RECOMMENDED.
+  - id: DEPTH-3
+    section: nested-catalog-depth-and-circular-references
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Clients SHOULD track the set of catalog URLs visited during recursive resolution and reject
+      any catalog URL that has already been fetched in the current traversal path.
+  - id: SUBST-1
+    section: trust-manifest-substitution
+    strength: SHOULD
+    role: producer
+    pending: verify
+    reason: Catalog signatures are not checked yet.
+    level: 3
+    text: Hosts SHOULD provide a signature satisfying [Catalog Snapshot
+      Coverage](#catalog-snapshot-coverage), with operator authorization, or an authenticated
+      content-addressed channel.
+  - id: TYPO-1
+    section: identifier-typosquatting
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Registries and consumers SHOULD implement similarity checks on identifiers.
+  - id: TYPO-2
+    section: identifier-typosquatting
+    strength: SHOULD
+    role: producer
+    check: document
+    level: 1
+    note: "Checked as: the identifier is a `urn:air` URN, a DID, or an `https` URL. Whether the
+      publisher controls the domain is not checked."
+    text: Publishers SHOULD use identifiers anchored to domains they control (e.g., DIDs or
+      domain-scoped URNs).
+  - id: STALE-1
+    section: stale-attestations
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: "Consumers SHOULD:"
+  - id: EMBED-1
+    section: embedded-content-safety
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: When the `data` field contains embedded artifact content, consumers MUST treat it as untrusted
+      input.
+  - id: EMBED-2
+    section: embedded-content-safety
+    strength: MUST NOT
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Content with HTML or script-capable media types MUST be sandboxed and MUST NOT be executed in
+      the consumer's security context.
+  - id: EMBED-3
+    section: embedded-content-safety
+    strength: SHOULD
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: Consumers SHOULD validate that the `data` content is well-formed JSON (or the expected format
+      for the declared `type`) before processing.
+  - id: PRIVACY-1
+    section: privacy-considerations
+    strength: SHOULD
+    role: producer
+    check: document
+    level: 1
+    note: Checked on `host.logoUrl`.
+    text: Logo URLs SHOULD use Data URIs [[RFC2397]] to avoid leaking client information through image
+      fetch requests.
+  - id: PRIVACY-2
+    section: privacy-considerations
+    strength: SHOULD
+    role: producer
+    excluded: What belongs in `extensions` is the publisher's judgment.
+    text: Publishers SHOULD carefully consider what information is included in `extensions` fields.
+  - id: IANA-1
+    section: media-type-registration-application-ai-catalog-json
+    strength: MUST
+    role: producer
+    excluded: Restates TOP-1, which is checked.
+    text: The document MUST contain `specVersion` and `entries` fields.
+  - id: CDDL-1
+    section: cddl-schema
+    strength: MUST
+    role: consumer
+    excluded: Binds consumers, not the catalog.
+    text: The Trust Manifest maps describe recognized members only; under [Version
+      Handling](#version-handling), consumers MUST ignore unrecognized members when validating any
+      of these structures, but MUST retain them when constructing signed payloads.
+  - id: CDDL-AICatalog
+    section: cddl-schema
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: Checks the types of the members the rule defines. Members it does not define are allowed
+      (Unrecognized Members).
+    text: |-
+      AICatalog = {
+        specVersion: text,
+        ? host: HostInfo,
+        entries: [* CatalogEntry],
+        ? signature: Signature,
+        ? additionalSignatures: any,
+        ? extensions: { * text => any },
+        * text => any
+      }
+  - id: CDDL-HostInfo
+    section: cddl-schema
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: Checks the types of the members the rule defines. Members it does not define are allowed
+      (Unrecognized Members).
+    text: |-
+      HostInfo = {
+        displayName: text,
+        ? identifier: text,
+        ? documentationUrl: text,
+        ? logoUrl: text,
+        * text => any
+      }
+  - id: CDDL-CatalogEntry
+    section: cddl-schema
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: Checks the types of the members the rule defines. Members it does not define are allowed
+      (Unrecognized Members).
+    text: |-
+      CatalogEntry = {
+        identifier: text,
+        ? displayName: text,
+        type: text,
+        (url: text // data: any),
+        ? version: text,
+        ? description: text,
+        ? tags: [* text],
+        ? publisher: Publisher,
+        ? digest: text,
+        ? trustManifests: [* TrustManifest],
+        ? updatedAt: tdate,
+        ? extensions: { * text => any },
+        * text => any
+      }
+  - id: CDDL-Publisher
+    section: cddl-schema
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: Checks the types of the members the rule defines. Members it does not define are allowed
+      (Unrecognized Members).
+    text: |-
+      Publisher = {
+        identifier: text,
+        displayName: text,
+        ? identityType: text,
+        * text => any
+      }
+  - id: CDDL-TrustManifest
+    section: cddl-schema
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: Checks the types of the members the rule defines. Members it does not define are allowed
+      (Unrecognized Members).
+    text: |-
+      TrustManifest = {
+        contributor: text,
+        ? subject: Subject,
+        ? signature: Signature,
+        ? additionalSignatures: any,
+        ? trustSchema: TrustSchema,
+        ? attestations: [* Attestation],
+        ? provenance: [* ProvenanceLink],
+        ? extensions: { * text => any }
+      }
+  - id: CDDL-Subject
+    section: cddl-schema
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: Checks the types of the members the rule defines. Members it does not define are allowed
+      (Unrecognized Members).
+    text: |-
+      Subject = {
+        identifier: text,
+        type: text,
+        digest: text,
+        ? version: text
+      }
+  - id: CDDL-Signature
+    section: cddl-schema
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: Checks the types of the members the rule defines. Members it does not define are allowed
+      (Unrecognized Members).
+    text: |-
+      Signature = {
+        signer: text,
+        profile: text,
+        issuedAt: tdate,
+        ? expiresAt: tdate,
+        jws: text
+      }
+  - id: CDDL-TrustSchema
+    section: cddl-schema
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: Checks the types of the members the rule defines. Members it does not define are allowed
+      (Unrecognized Members).
+    text: |-
+      TrustSchema = {
+        identifier: text,
+        version: text,
+        ? governanceUri: text,
+        ? verificationMethods: [* text]
+      }
+  - id: CDDL-Attestation
+    section: cddl-schema
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: Checks the types of the members the rule defines. Members it does not define are allowed
+      (Unrecognized Members).
+    text: |-
+      Attestation = {
+        type: text,
+        uri: text,
+        ? digest: text,
+        ? size: uint,
+        ? description: text
+      }
+  - id: CDDL-ProvenanceLink
+    section: cddl-schema
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: Checks the types of the members the rule defines. Members it does not define are allowed
+      (Unrecognized Members).
+    text: |-
+      ProvenanceLink = {
+        relation: text,
+        sourceId: text,
+        ? sourceDigest: text,
+        ? registryUri: text,
+        ? statementUri: text,
+        ? signatureRef: text
+      }
+  - id: CDDL-PolicyUrls
+    section: cddl-schema
+    strength: MUST
+    role: producer
+    check: document
+    level: 1
+    note: Checks the types of the members the rule defines. Members it does not define are allowed
+      (Unrecognized Members).
+    text: |-
+      PolicyUrls = {
+        ? privacyPolicyUrl: text,
+        ? termsOfServiceUrl: text
+      }
