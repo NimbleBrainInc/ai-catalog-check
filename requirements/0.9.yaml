@@ -120,6 +120,7 @@ requirements:
     role: producer
     check: document
     level: 1
+    note: The members are `specVersion` and `entries`.
     text: "An AI Catalog document is a JSON object that MUST contain the following members:"
   - id: TOP-2
     section: top-level-structure
@@ -141,7 +142,7 @@ requirements:
     role: producer
     check: document
     level: 1
-    note: Applies when `host` is present.
+    note: Applies when `host` is present. The member is `displayName`.
     text: "It MUST contain:"
   - id: ENTRY-1
     section: catalog-entry

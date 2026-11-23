@@ -9,7 +9,6 @@ README says what it does for a user; this file is for changing it.
 |---|---|
 | `spec/<version>/` | The spec's Markdown and example file, vendored at the commit `requirements/<version>.yaml` names. Never edited. |
 | `requirements/<version>.yaml` | The registry: every normative statement, numbered, with its disposition |
-| `profiles/<name>.yaml` | An organization's conventions on top of the spec, under its own ID prefix |
 | `src/extract.ts` | Spec Markdown → its normative statements and CDDL rules |
 | `src/sync.ts` | Spec ↔ registry diff (`npm run sync`), also the traceability test |
 | `src/checks/*.ts` | One function per checked requirement, keyed by its ID |
@@ -40,9 +39,9 @@ README says what it does for a user; this file is for changing it.
 - **A spec example a MUST rejects is a spec bug** when the check is right. Record it in
   `KNOWN_SPEC_ERRORS` (`test/spec-examples.ts`) with what the spec gets wrong, and
   report it upstream.
-- **Spec requirements and profiles stay apart.** A convention the spec leaves open goes
-  in a profile, under the profile's prefix; it never changes a spec requirement's
-  strength or disposition.
+- **The suite checks the spec and nothing else.** A pass means the catalog conforms to
+  the AI Catalog spec. A publisher's own conventions belong where its catalog is
+  generated, not here; a publisher that wants SHOULDs enforced runs `--strict`.
 
 ## Moving to a new spec version
 

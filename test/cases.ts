@@ -8,10 +8,10 @@ type Catalog = any;
 
 export const COMPLETE = readFileSync(new URL("./fixtures/complete.json", import.meta.url), "utf8");
 
-export async function check(mutate: (c: Catalog) => void, profiles: string[] = []): Promise<Report> {
+export async function check(mutate: (c: Catalog) => void): Promise<Report> {
   const catalog = JSON.parse(COMPLETE);
   mutate(catalog);
-  return run({ text: JSON.stringify(catalog, null, 2), source: "test", profiles });
+  return run({ text: JSON.stringify(catalog, null, 2), source: "test" });
 }
 
 export function statusOf(report: Report, id: string): Status | undefined {
@@ -42,7 +42,6 @@ export interface Case {
   expect: Status;
   why: string;
   mutate: (c: Catalog) => void;
-  profile?: string;
 }
 
 export const CASES: Case[] = [
@@ -153,9 +152,6 @@ export const CASES: Case[] = [
     why: "privacyPolicyUrl number",
     mutate: (c) => (c.entries[0].extensions["https://ai-catalog.org/extensions/policy-urls"].privacyPolicyUrl = 1),
   },
-  { id: "NB-1", expect: "fail", profile: "nimblebrain", why: "no kind", mutate: (c) => (c.entries[0].identifier = "urn:air:acme.example:weather") },
-  { id: "NB-2", expect: "fail", profile: "nimblebrain", why: "kind first", mutate: (c) => (c.entries[0].identifier = "urn:air:acme.example:mcp:weather") },
-  { id: "NB-3", expect: "fail", profile: "nimblebrain", why: "publisher elsewhere", mutate: (c) => (c.entries[0].publisher.identifier = "other.example") },
 ];
 
 /** The text of the complete catalog with a case's change made. */

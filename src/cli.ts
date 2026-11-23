@@ -5,7 +5,7 @@ import { appendFileSync, readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import YAML from "yaml";
 import { cachingFetcher } from "./checks/fetch.ts";
-import { PROFILES, SPEC_VERSIONS } from "./registry.ts";
+import { SPEC_VERSIONS } from "./registry.ts";
 import { github, json, text } from "./report.ts";
 import { type Baseline, run } from "./run.ts";
 
@@ -15,11 +15,11 @@ Each <catalog> is a file path or an http(s) URL.
 
 Options:
   --spec <version>     The spec version to check against (${SPEC_VERSIONS.join(", ")}; default ${SPEC_VERSIONS.at(-1)})
-  --profile <name>     Also check a profile's conventions (${PROFILES.join(", ")}); repeatable
   --fetch              Also fetch the catalog's URL and the artifacts its entries name
   --baseline <file>    YAML listing failures to expect: expected: [{id, reason}]
   --format <format>    text (default), json, or github (annotations for GitHub Actions)
   --strict             Fail on warnings as well as failures
+  -v, --verbose        List every result, passing ones too, with the spec sentence each checks
   -h, --help           Show this help
 
 Exits 1 when a requirement fails, 2 on a usage error.`;
@@ -31,11 +31,11 @@ async function main(): Promise<number> {
       allowPositionals: true,
       options: {
         spec: { type: "string", default: SPEC_VERSIONS.at(-1) },
-        profile: { type: "string", multiple: true, default: [] },
         fetch: { type: "boolean", default: false },
         baseline: { type: "string" },
         format: { type: "string", default: "text" },
         strict: { type: "boolean", default: false },
+        verbose: { type: "boolean", short: "v", default: false },
         help: { type: "boolean", short: "h", default: false },
       },
     });
@@ -78,7 +78,6 @@ async function main(): Promise<number> {
       text: textIn,
       source,
       specVersion: values.spec,
-      profiles: values.profile,
       fetch: values.fetch,
       ...(remote ? { catalogUrl: catalogResponse!.url, catalogResponse } : {}),
       fetcher,
@@ -87,11 +86,15 @@ async function main(): Promise<number> {
     });
     failed ||= report.failed;
     reports.push(
-      values.format === "json" ? json(report) : values.format === "github" ? github(report, remote ? undefined : source) : text(report),
+      values.format === "json"
+        ? json(report)
+        : values.format === "github"
+          ? github(report, remote ? undefined : source, { verbose: values.verbose })
+          : text(report, { verbose: values.verbose }),
     );
     // Under GitHub Actions, the report also goes to the job's summary page.
     if (values.format === "github" && process.env.GITHUB_STEP_SUMMARY) {
-      appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\`\`\`\n${text(report)}\n\`\`\`\n\n`);
+      appendFileSync(process.env.GITHUB_STEP_SUMMARY, `\`\`\`\n${text(report, { verbose: values.verbose })}\n\`\`\`\n\n`);
     }
   }
   console.log(values.format === "json" && reports.length > 1 ? `[${reports.join(",\n")}]` : reports.join("\n\n"));

@@ -1,4 +1,4 @@
-// Loads the requirement registry for a spec version and any profiles on top of it.
+// Loads the requirement registry for a spec version.
 
 import { readFileSync } from "node:fs";
 import YAML from "yaml";
@@ -9,12 +9,12 @@ export type Mode = "document" | "fetch";
 
 export interface Requirement {
   id: string;
-  /** The spec section's anchor. Absent for a profile's requirements. */
-  section?: string;
+  /** The spec section's anchor. */
+  section: string;
   strength: Strength;
   role: string;
   level?: number;
-  /** The spec's sentence word for word, or a profile's statement. */
+  /** The spec's sentence, word for word. */
   text: string;
   note?: string;
   /** Normative without a keyword (a definition the spec states), enforced as a MUST. */
@@ -23,8 +23,6 @@ export interface Requirement {
   pending?: "document" | "verify";
   reason?: string;
   excluded?: string;
-  /** `spec`, or the name of the profile that defines it. */
-  source: string;
 }
 
 export interface SpecInfo {
@@ -45,7 +43,6 @@ export interface Registry {
 }
 
 export const SPEC_VERSIONS = ["0.9"] as const;
-export const PROFILES = ["nimblebrain"] as const;
 
 // `src/` and `dist/` both sit one level below the package root.
 const root = new URL("../", import.meta.url);
@@ -61,22 +58,13 @@ export function loadRegistry(version: string): Registry {
   const raw = YAML.parse(readFileSync(new URL(`requirements/${version}.yaml`, root), "utf8")) as {
     spec: SpecInfo;
     sections: Record<string, string>;
-    requirements: Omit<Requirement, "source">[];
+    requirements: Requirement[];
   };
-  return { ...raw, requirements: raw.requirements.map((r) => ({ ...r, source: "spec" })) };
+  return raw;
 }
 
-export function loadProfile(name: string): Requirement[] {
-  if (!(PROFILES as readonly string[]).includes(name)) {
-    throw new Error(`no profile "${name}"; this suite has ${PROFILES.join(", ")}`);
-  }
-  const raw = YAML.parse(readFileSync(new URL(`profiles/${name}.yaml`, root), "utf8")) as {
-    requirements: Omit<Requirement, "source">[];
-  };
-  return raw.requirements.map((r) => ({ ...r, source: name }));
-}
 
 /** The link to a requirement's section in the published spec. */
-export function specLink(registry: Registry, requirement: Requirement): string | undefined {
-  return requirement.section ? `${registry.spec.published}#${requirement.section}` : undefined;
+export function specLink(registry: Registry, requirement: Requirement): string {
+  return `${registry.spec.published}#${requirement.section}`;
 }

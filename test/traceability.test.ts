@@ -6,14 +6,14 @@ import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { coverageMarkdown } from "../src/coverage.ts";
 import { strengthOf } from "../src/extract.ts";
-import { loadProfile, loadRegistry, PROFILES, SPEC_VERSIONS, specPath } from "../src/registry.ts";
+import { loadRegistry, SPEC_VERSIONS, specPath } from "../src/registry.ts";
 import { implementedIds } from "../src/run.ts";
 import { sync } from "../src/sync.ts";
 
 for (const version of SPEC_VERSIONS) {
   describe(`requirements/${version}.yaml`, () => {
     const registry = loadRegistry(version);
-    const all = [...registry.requirements, ...PROFILES.flatMap((p) => loadProfile(p))];
+    const all = registry.requirements;
     const ids = new Set(all.map((r) => r.id));
 
     it("holds every normative statement of the vendored spec, word for word", () => {
@@ -52,7 +52,7 @@ for (const version of SPEC_VERSIONS) {
 
     it("refers only to IDs that exist", () => {
       for (const r of all) {
-        for (const ref of `${r.excluded ?? ""} ${r.note ?? ""} ${r.source === "spec" ? "" : r.text}`.match(/\b[A-Z][A-Z0-9]+-\d+\b/g) ?? []) {
+        for (const ref of `${r.excluded ?? ""} ${r.note ?? ""}`.match(/\b[A-Z][A-Z0-9]+-\d+\b/g) ?? []) {
           assert.ok(ids.has(ref), `${r.id} refers to ${ref}, which does not exist`);
         }
       }

@@ -2,12 +2,11 @@
 
 import { documentChecks } from "./checks/document.ts";
 import { cachingFetcher, fetchChecks } from "./checks/fetch.ts";
-import { nimblebrainChecks } from "./checks/nimblebrain.ts";
 import { signatureChecks } from "./checks/signature.ts";
 import type { DocumentCheck, FetchCheck, Fetched, JsonObject, Outcome } from "./checks/types.ts";
 import { isObject } from "./checks/walk.ts";
 import { lineOf, type Parsed, parseJson } from "./json.ts";
-import { loadProfile, loadRegistry, type Registry, type Requirement, specLink } from "./registry.ts";
+import { loadRegistry, type Requirement, specLink } from "./registry.ts";
 
 export type Status = "pass" | "fail" | "warn" | "notice" | "n/a" | "skipped" | "expected";
 
@@ -19,13 +18,15 @@ export interface Finding {
 
 export interface Result {
   id: string;
-  /** `spec`, or the profile that defines the requirement. */
-  source: string;
   strength: Requirement["strength"];
   status: Status;
   findings: Finding[];
   /** The requirement's section in the published spec. */
-  link?: string;
+  link: string;
+  /** The spec's sentence the requirement checks. */
+  text: string;
+  /** What the check takes the sentence to cover, when the sentence alone does not say. */
+  note?: string;
   /** Why it was skipped, or why a failure is expected. */
   reason?: string;
 }
@@ -40,7 +41,6 @@ export interface RunOptions {
   /** A file path or URL naming the catalog in the report. */
   source: string;
   specVersion?: string;
-  profiles?: string[];
   /** Run the checks that fetch the catalog's URL and its artifacts. */
   fetch?: boolean;
   /** The URL the catalog was fetched from; relative entry URLs resolve against it. */
@@ -55,7 +55,6 @@ export interface RunOptions {
 export interface Report {
   source: string;
   spec: { version: string; commit: string };
-  profiles: string[];
   fetched: boolean;
   /** 0 when a MUST of the spec fails; 1 Minimal; 2 Discoverable. Level 3 is not assessed. */
   level: 0 | 1 | 2;
@@ -72,7 +71,6 @@ const ALL_CHECKS: Record<string, DocumentCheck | FetchCheck> = {
   ...documentChecks,
   ...signatureChecks,
   ...fetchChecks,
-  ...nimblebrainChecks,
 };
 
 export function implementedIds(): Set<string> {
@@ -82,11 +80,7 @@ export function implementedIds(): Set<string> {
 export async function run(options: RunOptions): Promise<Report> {
   const specVersion = options.specVersion ?? "0.9";
   const registry = loadRegistry(specVersion);
-  const profiles = options.profiles ?? [];
-  const requirements = [
-    ...registry.requirements,
-    ...profiles.flatMap((p) => loadProfile(p)),
-  ].filter((r) => r.check);
+  const requirements = registry.requirements.filter((r) => r.check);
 
   let parsed: Parsed | undefined;
   let syntax: string | undefined;
@@ -99,7 +93,7 @@ export async function run(options: RunOptions): Promise<Report> {
 
   const results: Result[] = [];
   for (const r of requirements) {
-    const base = { id: r.id, source: r.source, strength: r.strength, ...link(registry, r) };
+    const base = { id: r.id, strength: r.strength, link: specLink(registry, r), text: r.text, ...(r.note ? { note: r.note } : {}) };
     if (!catalog || !parsed) {
       if (r.id === "TOP-1") {
         const message = syntax ? `The document is not JSON: ${syntax}` : "The document is not a JSON object";
@@ -139,7 +133,7 @@ export async function run(options: RunOptions): Promise<Report> {
   }
 
   const specFailed = results.some(
-    (x) => x.source === "spec" && (x.status === "fail" || x.status === "expected") && x.strength.startsWith("MUST"),
+    (x) => (x.status === "fail" || x.status === "expected") && x.strength.startsWith("MUST"),
   );
   const host = catalog && isObject(catalog.host) && typeof catalog.host.displayName === "string";
   const level = !catalog || specFailed ? 0 : host ? 2 : 1;
@@ -157,7 +151,6 @@ export async function run(options: RunOptions): Promise<Report> {
   return {
     source: options.source,
     spec: { version: registry.spec.version, commit: registry.spec.commit },
-    profiles,
     fetched: options.fetch === true,
     level,
     results,
@@ -167,10 +160,6 @@ export async function run(options: RunOptions): Promise<Report> {
   };
 }
 
-function link(registry: Registry, r: Requirement): { link?: string } {
-  const url = specLink(registry, r);
-  return url ? { link: url } : {};
-}
 
 function statusOf(r: Requirement, outcome: Outcome, parsed: Parsed): Pick<Result, "status" | "findings"> {
   if (outcome === "n/a") return { status: "n/a", findings: [] };

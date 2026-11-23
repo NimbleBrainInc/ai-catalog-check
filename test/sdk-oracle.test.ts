@@ -46,7 +46,7 @@ describe("the SDK's verdicts", { skip: built ? false : "SDK not built; run node 
       const rejected = await sdkRejects(sdk!, doc.text);
       if (!rejected) return;
       const report = await run({ text: doc.text, source: doc.name });
-      const mustFailed = report.results.some((r) => r.source === "spec" && r.status === "fail" && r.strength.startsWith("MUST"));
+      const mustFailed = report.results.some((r) => r.status === "fail" && r.strength.startsWith("MUST"));
       assert.ok(mustFailed, `the SDK rejects it (${rejected}) and no MUST of the spec fails`);
     });
   }

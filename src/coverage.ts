@@ -1,9 +1,9 @@
-// Renders COVERAGE.md: every requirement of the latest spec registry and each
-// profile, and whether the suite checks it. `npm run coverage` writes it; a test
+// Renders COVERAGE.md: every requirement of the latest spec registry, and
+// whether the suite checks it. `npm run coverage` writes it; a test
 // fails when the committed file is out of date.
 
 import { fileURLToPath } from "node:url";
-import { loadProfile, loadRegistry, PROFILES, type Requirement, SPEC_VERSIONS } from "./registry.ts";
+import { loadRegistry, type Requirement, SPEC_VERSIONS } from "./registry.ts";
 
 const cell = (s: string) => s.replace(/\|/g, "\\|").replace(/\n/g, " ");
 
@@ -51,12 +51,6 @@ export function coverageMarkdown(): string {
         `| [${r.id}](${registry.spec.published}#${r.section}) | ${r.strength} | ${r.role} | ${cell(disposition(r))} | ${cell(r.text)} |`,
     ),
   ];
-  for (const name of PROFILES) {
-    lines.push("", `## Profile: ${name}`, "", "| ID | Strength | Disposition | Statement |", "|---|---|---|---|");
-    for (const r of loadProfile(name)) {
-      lines.push(`| ${r.id} | ${r.strength} | ${cell(disposition(r))} | ${cell(r.text)} |`);
-    }
-  }
   return `${lines.join("\n")}\n`;
 }
 

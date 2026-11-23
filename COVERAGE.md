@@ -230,11 +230,3 @@ By the role each requirement binds:
 | [CDDL-Attestation](https://ai-catalog.io/spec/#cddl-schema) | MUST | producer | checked (document) | Attestation = {   type: text,   uri: text,   ? digest: text,   ? size: uint,   ? description: text } |
 | [CDDL-ProvenanceLink](https://ai-catalog.io/spec/#cddl-schema) | MUST | producer | checked (document) | ProvenanceLink = {   relation: text,   sourceId: text,   ? sourceDigest: text,   ? registryUri: text,   ? statementUri: text,   ? signatureRef: text } |
 | [CDDL-PolicyUrls](https://ai-catalog.io/spec/#cddl-schema) | MUST | producer | checked (document) | PolicyUrls = {   ? privacyPolicyUrl: text,   ? termsOfServiceUrl: text } |
-
-## Profile: nimblebrain
-
-| ID | Strength | Disposition | Statement |
-|---|---|---|---|
-| NB-1 | MUST | checked (document) | Every entry's `identifier` is a `urn:air` identifier, `urn:air:{publisher}:{name}:{kind}`, so it survives when another catalog lists the artifact (ENTRY-4 makes this a SHOULD). |
-| NB-2 | MUST | checked (document) | A `urn:air` identifier ends in the kind its `type` names: `mcp` for an MCP Server Card, `plugin` for an Agent Plugin, `skill` for an Agent Skill, `a2a` for an A2A Agent Card, `catalog` for a nested AI Catalog. A consumer that derives a name from the identifier shows `{name}`, so the kind belongs last. |
-| NB-3 | MUST | checked (document) | An entry's `publisher.identifier` is the domain in its `urn:air` identifier's `{publisher}` segment, or that domain as a root `did:web` DID, since a signed publisher endorsement must come from `did:web:` and that domain (DIDPUB-3). |

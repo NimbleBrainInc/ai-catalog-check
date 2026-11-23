@@ -22,10 +22,10 @@ the report goes to the job summary. Inputs:
 | Input | Default | |
 |---|---|---|
 | `catalogs` | (required) | Files or URLs, one per line |
-| `profile` | | Profiles to check as well, one per line (`nimblebrain`) |
 | `fetch` | `false` | Also fetch the catalog's URL and the artifacts its entries name |
 | `baseline` | | A YAML file of failures to expect (see below) |
 | `strict` | `false` | Fail on warnings too |
+| `verbose` | `false` | List every result in the job summary, passing ones too |
 | `spec` | `0.9` | The spec version to check against |
 
 Check the built file before merge, and the live catalog with `fetch: true` on a
@@ -49,8 +49,11 @@ not conformant. Level 3 (Trusted) is not assessed.
     https://ai-catalog.io/spec/#producer-behavior
 ```
 
-`--format json` gives the whole report to a program; `--format github` writes
-workflow annotations. The exit code is 1 when a requirement fails.
+By default the report lists only what needs attention. `--verbose` (`-v`) lists every
+checked requirement with its status, the spec sentence it checks, and every finding;
+a requirement that was skipped or did not apply says why. `--format json` gives the
+whole report to a program; `--format github` writes workflow annotations. The exit
+code is 1 when a requirement fails.
 
 ## What a result means
 
@@ -88,13 +91,6 @@ what is not checked binds consumers and signature verifiers, not the catalog.
 Tests hold the registry to the spec: every normative statement of the vendored
 spec has exactly one entry, every checked entry has a check and a test that breaks
 it, and every check belongs to an entry.
-
-## Profiles
-
-A profile adds an organization's own conventions on top of the spec, under its own
-IDs. `--profile nimblebrain` ([profiles/nimblebrain.yaml](profiles/nimblebrain.yaml))
-requires `urn:air:{publisher}:{name}:{kind}` identifiers whose kind matches the
-entry's type, and a `publisher` that matches the identifier's domain.
 
 ## Baseline
 

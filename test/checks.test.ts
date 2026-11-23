@@ -7,7 +7,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { documentChecks } from "../src/checks/document.ts";
-import { nimblebrainChecks } from "../src/checks/nimblebrain.ts";
 import { signatureChecks } from "../src/checks/signature.ts";
 import { parseJson } from "../src/json.ts";
 import { type Report, run } from "../src/run.ts";
@@ -15,7 +14,7 @@ import { CASES, check, COMPLETE, mutated, statusOf } from "./cases.ts";
 
 describe("complete.json", () => {
   it("passes every document check, at Level 2", async () => {
-    const report = await check(() => {}, ["nimblebrain"]);
+    const report = await check(() => {});
     const bad = report.results.filter((r) => !["pass", "skipped"].includes(r.status));
     assert.deepEqual(bad, []);
     assert.equal(report.level, 2);
@@ -26,7 +25,7 @@ describe("complete.json", () => {
 describe("each requirement, broken", () => {
   for (const c of CASES) {
     it(`${c.id}: ${c.why}`, async () => {
-      const report: Report = await run({ text: mutated(c), source: "test", profiles: c.profile ? [c.profile] : [] });
+      const report: Report = await run({ text: mutated(c), source: "test" });
       assert.equal(statusOf(report, c.id), c.expect, JSON.stringify(report.results.find((r) => r.id === c.id)));
     });
   }
@@ -43,11 +42,6 @@ describe("levels", () => {
     const report = await check((c) => (c.additionalSignatures = []));
     assert.equal(report.level, 2);
     assert.equal(report.failed, false);
-  });
-  it("keeps its level when only a profile fails, and the run fails", async () => {
-    const report = await check((c) => (c.entries[0].publisher.identifier = "other.example"), ["nimblebrain"]);
-    assert.equal(report.level, 2);
-    assert.equal(report.failed, true);
   });
 });
 
@@ -73,13 +67,6 @@ describe("member names", () => {
     const { value } = parseJson(text) as { value: Record<string, unknown> };
     assert.ok(Object.hasOwn(value, "__proto__"));
     assert.equal(Object.getPrototypeOf(value), Object.prototype);
-  });
-});
-
-describe("the nimblebrain profile", () => {
-  it("NB-3 accepts the publisher's domain as a did:web DID", async () => {
-    const report = await check((c) => (c.entries[0].publisher.identifier = "did:web:acme.example"), ["nimblebrain"]);
-    assert.equal(statusOf(report, "NB-3"), "pass");
   });
 });
 
@@ -130,6 +117,6 @@ describe("findings", () => {
 
 it("every checked document requirement has a case here", () => {
   const covered = new Set(CASES.map((c) => c.id));
-  const uncovered = Object.keys({ ...documentChecks, ...signatureChecks, ...nimblebrainChecks }).filter((id) => !covered.has(id));
+  const uncovered = Object.keys({ ...documentChecks, ...signatureChecks }).filter((id) => !covered.has(id));
   assert.deepEqual(uncovered, []);
 });

@@ -38,10 +38,10 @@ export function sync(markdown: string, version: string): SyncDiff {
   for (const r of registry.requirements) {
     if (r.definition) {
       // A definition carries no keyword, so it is not extracted; it must still be in its section.
-      if (!(prose.get(r.section ?? "") ?? "").includes(normalize(r.text))) stale.push({ id: r.id, text: r.text });
+      if (!(prose.get(r.section) ?? "").includes(normalize(r.text))) stale.push({ id: r.id, text: r.text });
       continue;
     }
-    const k = key(r.section ?? "", normalize(r.text));
+    const k = key(r.section, normalize(r.text));
     const n = unmatched.get(k) ?? 0;
     if (n > 0) unmatched.set(k, n - 1);
     else stale.push({ id: r.id, text: r.text });
@@ -59,7 +59,7 @@ export function sync(markdown: string, version: string): SyncDiff {
     const m = missing.find((x) => x.text === normalize(st.text));
     if (!m) continue;
     const r = registry.requirements.find((x) => x.id === st.id)!;
-    moved.push({ id: st.id, registry: r.section ?? "", spec: m.section });
+    moved.push({ id: st.id, registry: r.section, spec: m.section });
     stale.splice(stale.indexOf(st), 1);
     missing.splice(missing.indexOf(m), 1);
   }

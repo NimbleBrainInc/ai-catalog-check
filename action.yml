@@ -8,9 +8,6 @@ inputs:
   catalogs:
     description: Catalog files (relative to the workspace) or URLs, one per line.
     required: true
-  profile:
-    description: Profiles to check as well as the spec, one per line (nimblebrain).
-    default: ""
   fetch:
     description: Also fetch the catalog's URL and the artifacts its entries name (true or false).
     default: "false"
@@ -19,6 +16,9 @@ inputs:
     default: ""
   strict:
     description: Fail on warnings as well as failures (true or false).
+    default: "false"
+  verbose:
+    description: List every result in the job summary, passing ones too (true or false).
     default: "false"
   spec:
     description: The AI Catalog version to check against.
@@ -36,17 +36,17 @@ runs:
       # Inputs reach the script through the environment, never the script's text.
       env:
         CATALOGS: ${{ inputs.catalogs }}
-        PROFILES: ${{ inputs.profile }}
         FETCH: ${{ inputs.fetch }}
         BASELINE: ${{ inputs.baseline }}
         STRICT: ${{ inputs.strict }}
+        VERBOSE: ${{ inputs.verbose }}
         SPEC: ${{ inputs.spec }}
       run: |
         args=(--format github --spec "$SPEC")
-        while IFS= read -r p; do [ -n "$p" ] && args+=(--profile "$p"); done <<< "$PROFILES"
         [ "$FETCH" = true ] && args+=(--fetch)
         [ -n "$BASELINE" ] && args+=(--baseline "$BASELINE")
         [ "$STRICT" = true ] && args+=(--strict)
+        [ "$VERBOSE" = true ] && args+=(--verbose)
         catalogs=()
         while IFS= read -r c; do c="${c#"${c%%[![:space:]]*}"}"; [ -n "$c" ] && catalogs+=("$c"); done <<< "$CATALOGS"
         node "$GITHUB_ACTION_PATH/dist/cli.js" "${args[@]}" "${catalogs[@]}"

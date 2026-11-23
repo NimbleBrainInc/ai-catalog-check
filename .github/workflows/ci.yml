@@ -29,7 +29,6 @@ jobs:
       - uses: ./
         with:
           catalogs: test/fixtures/complete.json
-          profile: nimblebrain
       - id: failing
         uses: ./
         continue-on-error: true
