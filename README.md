@@ -5,8 +5,10 @@ A conformance suite for the [AI Catalog specification](https://ai-catalog.io/spe
 quoted word for word, and either checked, pending, or excluded with a reason. Each
 finding names the requirement it breaks and links to it in the spec.
 
-It covers **AI Catalog 0.9** (the 1.0 release candidate,
-[v0.9.0](https://github.com/Agent-Card/ai-catalog/releases/tag/v0.9.0)).
+It checks **AI Catalog 0.9** (the 1.0 release candidate,
+[v0.9.0](https://github.com/Agent-Card/ai-catalog/releases/tag/v0.9.0)). Each release
+line checks one version of the spec: `v0.x` checks 0.9, and 1.0 will start `v1.x`, so
+a pinned version never changes which spec it holds you to.
 
 ## Use it in GitHub Actions
 
@@ -26,7 +28,6 @@ the report goes to the job summary. Inputs:
 | `baseline` | | A YAML file of failures to expect (see below) |
 | `strict` | `false` | Fail on warnings too |
 | `verbose` | `false` | List every result in the job summary, passing ones too |
-| `spec` | `0.9` | The spec version to check against |
 
 Check the built file before merge, and the live catalog with `fetch: true` on a
 schedule: fetching checks what only the served copy shows (media types, digests
@@ -69,13 +70,15 @@ A requirement's strength decides what breaking it does:
 | `expected` | It fails, and the baseline says to expect that. |
 
 The report gives the catalog's [conformance level](https://ai-catalog.io/spec/#conformance-levels):
-Level 1 (Minimal) when no MUST of the spec fails, Level 2 (Discoverable) when it
-also has a `host`. Level 3 (Trusted) needs signature verification, which the suite
-does not do yet.
+Level 1 (Minimal) when no MUST checked from the document fails, Level 2
+(Discoverable) when it also has a `host`. Level 3 (Trusted) needs signature
+verification, which the suite does not do yet. The level is the document's, so a
+file and its served copy get the same one; with `--fetch`, what the live copy and
+its artifacts show is reported beside it, and a failure there still fails the run.
 
 ## The requirements
 
-[`requirements/0.9.yaml`](requirements/0.9.yaml) holds one entry for every sentence
+[`requirements.yaml`](requirements.yaml) holds one entry for every sentence
 of the spec that carries MUST, SHALL, REQUIRED, SHOULD or RECOMMENDED, one for each
 CDDL rule, and one for each definition the spec states without a keyword (the digest
 format, the stored JWS form). Each entry has an ID (`ENTRY-7`, `SUBJ-4`, `CDDL-Publisher`),
@@ -87,6 +90,10 @@ the role it binds, and one disposition:
 
 [COVERAGE.md](COVERAGE.md) lists all of them with the current counts. Most of
 what is not checked binds consumers and signature verifiers, not the catalog.
+
+What the checks need to know about the spec beyond its sentences (the members and
+types of each CDDL rule, the recognized media types, the protected `typ` of each
+signed object) is read from the vendored spec, not copied into the code.
 
 Tests hold the registry to the spec: every normative statement of the vendored
 spec has exactly one entry, every checked entry has a check and a test that breaks
@@ -125,5 +132,5 @@ on a MUST of the spec.
 ## License
 
 The code is [Apache-2.0](LICENSE). The specification text in `spec/` and quoted in
-`requirements/` is the AI Catalog Working Group's, under
+`requirements.yaml` is the AI Catalog Working Group's, under
 [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/); see [NOTICE](NOTICE).

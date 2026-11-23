@@ -20,9 +20,6 @@ inputs:
   verbose:
     description: List every result in the job summary, passing ones too (true or false).
     default: "false"
-  spec:
-    description: The AI Catalog version to check against.
-    default: "0.9"
 
 runs:
   using: composite
@@ -40,9 +37,8 @@ runs:
         BASELINE: ${{ inputs.baseline }}
         STRICT: ${{ inputs.strict }}
         VERBOSE: ${{ inputs.verbose }}
-        SPEC: ${{ inputs.spec }}
       run: |
-        args=(--format github --spec "$SPEC")
+        args=(--format github)
         [ "$FETCH" = true ] && args+=(--fetch)
         [ -n "$BASELINE" ] && args+=(--baseline "$BASELINE")
         [ "$STRICT" = true ] && args+=(--strict)

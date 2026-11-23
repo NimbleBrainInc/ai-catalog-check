@@ -3,6 +3,7 @@
 // Verifying a signature (resolving the DID, checking the bytes) is pending.
 
 import { pointer } from "../json.ts";
+import { specFacts } from "../spec-facts.ts";
 import type { DocumentCheck, JsonObject, Outcome, Violation } from "./types.ts";
 import { type At, isObject, manifests } from "./walk.ts";
 
@@ -21,10 +22,10 @@ const SEGMENT = /^[A-Za-z0-9_-]+$/;
 
 function signed(catalog: JsonObject): Signed[] {
   const out: Signed[] = [];
-  if (isObject(catalog.signature)) out.push({ sig: { value: catalog.signature, at: "/signature" }, typ: "ai-catalog+jws" });
+  if (isObject(catalog.signature)) out.push({ sig: { value: catalog.signature, at: "/signature" }, typ: specFacts().jwsTyp.catalog });
   for (const m of manifests(catalog)) {
     if (isObject(m.value.signature)) {
-      out.push({ sig: { value: m.value.signature, at: pointer(m.at, "signature") }, typ: "ai-catalog-trust-manifest+jws" });
+      out.push({ sig: { value: m.value.signature, at: pointer(m.at, "signature") }, typ: specFacts().jwsTyp.trustManifest });
     }
   }
   return out;

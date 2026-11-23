@@ -1,6 +1,7 @@
 // Checks that need only the catalog document, keyed by requirement ID.
 
 import { type Json, pointer } from "../json.ts";
+import { type Kind, specFacts } from "../spec-facts.ts";
 import type { DocumentCheck, JsonObject, Outcome, Violation } from "./types.ts";
 import {
   ABSOLUTE_URI,
@@ -10,7 +11,6 @@ import {
   extensionMaps,
   has,
   isObject,
-  KNOWN_TYPES,
   manifests,
   member,
   objectsIn,
@@ -41,17 +41,16 @@ function identifiers(catalog: JsonObject) {
 }
 
 // --- CDDL types -------------------------------------------------------------
-
-type Kind = "text" | "map" | "array" | "text[]" | "map[]" | "tdate" | "uint";
+// The members and types come from the spec's CDDL (spec-facts.ts), not from here.
 
 function typeOk(v: Json, kind: Kind): boolean {
   switch (kind) {
+    case "any":
+      return true;
     case "text":
       return typeof v === "string";
     case "map":
       return isObject(v);
-    case "array":
-      return Array.isArray(v);
     case "text[]":
       return Array.isArray(v) && v.every((x) => typeof x === "string");
     case "map[]":
@@ -64,78 +63,28 @@ function typeOk(v: Json, kind: Kind): boolean {
 }
 
 const KIND_NAMES: Record<Kind, string> = {
+  any: "any value",
   text: "a string",
   map: "an object",
-  array: "an array",
   "text[]": "an array of strings",
   "map[]": "an array of objects",
   tdate: "an RFC 3339 date-time",
   uint: "a non-negative integer",
 };
 
-function types(item: At<JsonObject>, rule: string, members: Record<string, Kind>): Violation[] {
-  const out: Violation[] = [];
-  for (const [key, kind] of Object.entries(members)) {
-    if (!has(item.value, key)) continue;
-    if (!typeOk(item.value[key] as Json, kind)) {
-      out.push({ at: pointer(item.at, key), message: `\`${key}\` must be ${KIND_NAMES[kind]} (${rule})` });
-    }
-  }
-  return out;
+function rule(name: string) {
+  const r = specFacts().cddl[name];
+  if (!r) throw new Error(`the spec's CDDL has no rule ${name}`);
+  return r;
 }
 
-export const CDDL_MEMBERS = {
-  AICatalog: { specVersion: "text", host: "map", entries: "map[]", signature: "map", extensions: "map" },
-  HostInfo: { displayName: "text", identifier: "text", documentationUrl: "text", logoUrl: "text" },
-  CatalogEntry: {
-    identifier: "text",
-    displayName: "text",
-    type: "text",
-    url: "text",
-    version: "text",
-    description: "text",
-    tags: "text[]",
-    publisher: "map",
-    digest: "text",
-    trustManifests: "map[]",
-    updatedAt: "tdate",
-    extensions: "map",
-  },
-  Publisher: { identifier: "text", displayName: "text", identityType: "text" },
-  TrustManifest: {
-    contributor: "text",
-    subject: "map",
-    signature: "map",
-    trustSchema: "map",
-    attestations: "map[]",
-    provenance: "map[]",
-    extensions: "map",
-  },
-  Subject: { identifier: "text", type: "text", digest: "text", version: "text" },
-  Signature: { signer: "text", profile: "text", issuedAt: "tdate", expiresAt: "tdate", jws: "text" },
-  TrustSchema: { identifier: "text", version: "text", governanceUri: "text", verificationMethods: "text[]" },
-  Attestation: { type: "text", uri: "text", digest: "text", size: "uint", description: "text" },
-  ProvenanceLink: {
-    relation: "text",
-    sourceId: "text",
-    sourceDigest: "text",
-    registryUri: "text",
-    statementUri: "text",
-    signatureRef: "text",
-  },
-  PolicyUrls: { privacyPolicyUrl: "text", termsOfServiceUrl: "text" },
-} as const satisfies Record<string, Record<string, Kind>>;
-
-/** The members the spec defines on its open objects, for STABLE-1. */
-const DEFINED: Record<string, Set<string>> = {
-  AICatalog: new Set([...Object.keys(CDDL_MEMBERS.AICatalog), "additionalSignatures"]),
-  HostInfo: new Set(Object.keys(CDDL_MEMBERS.HostInfo)),
-  CatalogEntry: new Set([...Object.keys(CDDL_MEMBERS.CatalogEntry), "data"]),
-  Publisher: new Set(Object.keys(CDDL_MEMBERS.Publisher)),
-};
-
-function cddl(rule: keyof typeof CDDL_MEMBERS, items: At<JsonObject>[]): Outcome {
-  return over(items, (item) => types(item, rule, CDDL_MEMBERS[rule]));
+function cddl(name: string, items: At<JsonObject>[]): Outcome {
+  const { members } = rule(name);
+  return over(items, (item) =>
+    Object.entries(members)
+      .filter(([key, kind]) => has(item.value, key) && !typeOk(item.value[key] as Json, kind))
+      .map(([key, kind]) => ({ at: pointer(item.at, key), message: `\`${key}\` must be ${KIND_NAMES[kind]} (${name})` })),
+  );
 }
 
 const root = (catalog: JsonObject): At<JsonObject> => ({ value: catalog, at: "" });
@@ -237,7 +186,7 @@ export const documentChecks: Record<string, DocumentCheck> = {
     over(
       entries(catalog).filter((e) => str(e.value.type)),
       (e) =>
-        KNOWN_TYPES.has(e.value.type as string)
+        specFacts().knownTypes.has(e.value.type as string)
           ? []
           : [
               {
@@ -482,9 +431,10 @@ export const documentChecks: Record<string, DocumentCheck> = {
     ),
 
   "STABLE-1": ({ catalog }) => {
-    const unknown = (item: At<JsonObject>, rule: string) =>
+    // The spec's open objects; members it does not define are allowed there, and reported.
+    const unknown = (item: At<JsonObject>, name: string) =>
       Object.keys(item.value)
-        .filter((k) => !DEFINED[rule]!.has(k))
+        .filter((k) => !Object.hasOwn(rule(name).members, k))
         .map((k) => ({ at: pointer(item.at, k), message: `\`${k}\` is not defined by the spec; custom data belongs in \`extensions\`` }));
     const host = hostOf(catalog);
     return [

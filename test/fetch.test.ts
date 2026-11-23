@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { describe, it } from "node:test";
 import { fetchChecks } from "../src/checks/fetch.ts";
 import type { Fetched } from "../src/checks/types.ts";
+import { text } from "../src/report.ts";
 import { type Report, run } from "../src/run.ts";
 
 const CATALOG_URL = "https://acme.example/.well-known/ai-catalog.json";
@@ -117,4 +118,22 @@ describe("each fetch requirement, broken", () => {
 it("skips the fetch checks without --fetch", async () => {
   const report = await run({ text: catalog([plugin]), source: "file.json" });
   for (const id of Object.keys(fetchChecks)) assert.equal(status(report, id), "skipped");
+});
+
+describe("the level", () => {
+  it("comes from the document alone: a live failure fails the run and leaves the level", async () => {
+    const broken = [{ ...plugin, digest: `sha256:${"0".repeat(64)}` }];
+    const live = await fetched(broken);
+    const offline = await run({ text: catalog(broken), source: "file.json" });
+    assert.equal(status(live, "INTEG-1"), "fail");
+    assert.equal(live.level, offline.level);
+    assert.equal(live.level, 1);
+    assert.equal(live.failed, true);
+    assert.equal(offline.failed, false);
+  });
+
+  it("is reported beside what the live copy shows", async () => {
+    const report = await fetched([{ ...plugin, digest: `sha256:${"0".repeat(64)}` }]);
+    assert.match(text(report), /Level 1 \(Minimal\), from the document\..*\nThe live copy and its artifacts: 1 failed, 0 warnings \(not counted in the level\)\./);
+  });
 });

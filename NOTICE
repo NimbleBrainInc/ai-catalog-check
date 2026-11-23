@@ -2,8 +2,7 @@ ai-catalog-conformance
 Copyright 2026 NimbleBrain, Inc.
 
 This product includes the AI Catalog Specification (spec/, and the statements
-quoted in requirements/), by the AI Catalog Working Group, from
-https://github.com/Agent-Card/ai-catalog at the commit each requirements file
-names. It is licensed under the Creative Commons Attribution 4.0 International
+quoted in requirements.yaml), by the AI Catalog Working Group, from
+https://github.com/Agent-Card/ai-catalog at the commit requirements.yaml names. It is licensed under the Creative Commons Attribution 4.0 International
 License (https://creativecommons.org/licenses/by/4.0/). It is reproduced without
-change, apart from the statements' whitespace in requirements/.
+change, apart from the statements' whitespace in requirements.yaml.

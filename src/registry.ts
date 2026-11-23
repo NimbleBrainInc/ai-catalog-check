@@ -1,4 +1,8 @@
-// Loads the requirement registry for a spec version.
+// Loads the requirement registry: the spec's normative statements, numbered.
+//
+// A release of this suite checks one version of the spec, the one
+// `requirements.yaml` names. The spec text it was built from is vendored in
+// `spec/`. A new spec version replaces both and starts a new major release.
 
 import { readFileSync } from "node:fs";
 import YAML from "yaml";
@@ -42,27 +46,23 @@ export interface Registry {
   requirements: Requirement[];
 }
 
-export const SPEC_VERSIONS = ["0.9"] as const;
-
 // `src/` and `dist/` both sit one level below the package root.
 const root = new URL("../", import.meta.url);
 
-export function specPath(version: string): URL {
-  return new URL(`spec/${version}/ai-catalog.md`, root);
-}
+/** The vendored spec's Markdown. */
+export const specPath = new URL("spec/ai-catalog.md", root);
 
-export function loadRegistry(version: string): Registry {
-  if (!(SPEC_VERSIONS as readonly string[]).includes(version)) {
-    throw new Error(`no registry for AI Catalog ${version}; this suite covers ${SPEC_VERSIONS.join(", ")}`);
-  }
-  const raw = YAML.parse(readFileSync(new URL(`requirements/${version}.yaml`, root), "utf8")) as {
-    spec: SpecInfo;
-    sections: Record<string, string>;
-    requirements: Requirement[];
-  };
-  return raw;
-}
+/** The vendored spec's example catalog. */
+export const specExamplePath = new URL("spec/examples/ai-catalog.json", root);
 
+export const registryPath = new URL("requirements.yaml", root);
+
+let cached: Registry | undefined;
+
+export function loadRegistry(): Registry {
+  cached ??= YAML.parse(readFileSync(registryPath, "utf8")) as Registry;
+  return cached;
+}
 
 /** The link to a requirement's section in the published spec. */
 export function specLink(registry: Registry, requirement: Requirement): string {

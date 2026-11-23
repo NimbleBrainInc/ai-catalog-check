@@ -15,8 +15,8 @@ const MARK: Record<Result["status"], string> = {
 };
 
 /** How much of the spec's registry the suite checks. */
-export function coverage(specVersion: string) {
-  const { requirements } = loadRegistry(specVersion);
+export function coverage() {
+  const { requirements } = loadRegistry();
   return {
     total: requirements.length,
     checked: requirements.filter((r) => r.check).length,
@@ -50,7 +50,13 @@ export function text(report: Report, options: TextOptions = {}): string {
   const verbose = options.verbose === true;
   const lines: string[] = [];
   lines.push(`AI Catalog ${report.spec.version}: ${report.source}`);
-  lines.push(`${LEVEL_NAMES[report.level]}. Level 3 (Trusted) is not assessed.`);
+  const level = report.level === 0 ? "Not conformant: the document fails a MUST" : `${LEVEL_NAMES[report.level]}, from the document`;
+  lines.push(`${level}. Level 3 (Trusted) is not assessed.`);
+  if (report.fetched) {
+    const live = report.results.filter((r) => r.mode === "fetch");
+    const n = (s: Result["status"]) => live.filter((r) => r.status === s).length;
+    lines.push(`The live copy and its artifacts: ${n("fail")} failed, ${n("warn")} warnings (not counted in the level).`);
+  }
   if (verbose) lines.push("");
   for (const r of report.results) {
     const problem = PROBLEMS.has(r.status);
@@ -79,7 +85,7 @@ export function text(report: Report, options: TextOptions = {}): string {
     `${c.pass} passed, ${c.fail} failed, ${c.warn} warnings, ${c.notice} notices, ${c.expected} expected failures, ` +
       `${c["n/a"]} not applicable, ${c.skipped} skipped${report.fetched ? "" : " (fetch checks need --fetch)"}.`,
   );
-  const cov = coverage(report.spec.version);
+  const cov = coverage();
   lines.push(
     `The suite checks ${cov.checked} of the spec's ${cov.total} requirements; ${cov.pending} are pending and ` +
       `${cov.excluded} cannot be checked from a catalog (COVERAGE.md lists each).`,
@@ -88,7 +94,7 @@ export function text(report: Report, options: TextOptions = {}): string {
 }
 
 export function json(report: Report): string {
-  return JSON.stringify({ ...report, coverage: coverage(report.spec.version) }, null, 2);
+  return JSON.stringify({ ...report, coverage: coverage() }, null, 2);
 }
 
 // Workflow command values escape %, CR and LF; properties also escape : and ,.

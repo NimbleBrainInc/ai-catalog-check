@@ -7,12 +7,13 @@ README says what it does for a user; this file is for changing it.
 
 | Path | What |
 |---|---|
-| `spec/<version>/` | The spec's Markdown and example file, vendored at the commit `requirements/<version>.yaml` names. Never edited. |
-| `requirements/<version>.yaml` | The registry: every normative statement, numbered, with its disposition |
+| `spec/` | The spec's Markdown and example file, vendored at the commit `requirements.yaml` names. Never edited. |
+| `requirements.yaml` | The registry: every normative statement, numbered, with its disposition |
 | `src/extract.ts` | Spec Markdown → its normative statements and CDDL rules |
+| `src/spec-facts.ts` | What checks need beyond the sentences, read from the spec: CDDL members and types, known media types, protected `typ` values |
 | `src/sync.ts` | Spec ↔ registry diff (`npm run sync`), also the traceability test |
 | `src/checks/*.ts` | One function per checked requirement, keyed by its ID |
-| `src/run.ts` | Runs the checks, maps findings to statuses, computes the level, applies a baseline |
+| `src/run.ts` | Files the checks by mode, runs them, maps findings to statuses, computes the level, applies a baseline |
 | `src/report.ts`, `src/cli.ts`, `action.yml` | Text, JSON and GitHub output; the CLI; the composite action |
 | `test/cases.ts` | `complete.json` and one way to break each checked requirement |
 | `scripts/build-sdk.ts` | Builds Vercel's SDK at a pinned commit for `test/sdk-oracle.test.ts` |
@@ -23,6 +24,18 @@ README says what it does for a user; this file is for changing it.
 - **The registry is the spec, numbered.** An entry's `text` is the spec's sentence
   word for word. The traceability test fails on a statement with no entry, an entry
   whose text is not in the spec, or a checked entry with no check. Do not paraphrase.
+- **One spec version per release line.** The suite checks the version
+  `requirements.yaml` names. A check has one meaning, so a spec version that changes
+  what a requirement means is a new major release, not a second registry beside this one.
+- **Read facts from the spec; do not restate them.** A table a check needs (members,
+  types, media types, header values) comes from `spec-facts.ts`, which reads the spec
+  and throws when it meets something it cannot read. Code names only what it acts on
+  (`MEDIA_TYPES`), and a test holds each name to the spec.
+- **A check is filed under its mode.** `CHECKS.document` or `CHECKS.fetch`, as the
+  registry's `check:` says; the runner looks it up under that mode only, so a fetch
+  check never runs without `--fetch`.
+- **The level is the document's.** It counts only document checks, so it does not
+  change with `--fetch`; fetch failures still fail the run.
 - **IDs are permanent.** Findings, baselines and other repos cite them. A new spec
   version keeps every ID whose statement survives, gives a new statement the next
   free number in its section, and retires a removed one; never renumber.
@@ -45,14 +58,16 @@ README says what it does for a user; this file is for changing it.
 
 ## Moving to a new spec version
 
-1. Vendor the new `specification/ai-catalog.md` and `specification/examples/` as
-   `spec/<version>/`, and copy the previous registry to `requirements/<version>.yaml`
-   with the new `spec:` commit and tag.
-2. `node src/sync.ts spec/<version>/ai-catalog.md <version>` lists the statements
-   added (`+`), removed (`-`) and moved (`~`). Number and classify the added ones,
-   retire the removed ones, and add the version to `SPEC_VERSIONS`.
+A new spec version is a new major release; the previous line stays on its tags.
+
+1. `node src/sync.ts <new spec's ai-catalog.md>` lists the statements it adds (`+`),
+   drops (`-`) and moves (`~`) against `requirements.yaml`.
+2. Vendor the new `specification/ai-catalog.md` and `specification/examples/` over
+   `spec/`. In `requirements.yaml`, set the `spec:` version, commit and tag, number and
+   classify the added statements, retire the dropped ones, and revisit every check
+   whose statement changed meaning.
 3. Point `SDK_COMMIT` in `scripts/build-sdk.ts` at the SDK release for the new version.
-4. `npm run coverage`, `npm run check`.
+4. `npm run coverage`, `npm run check`, and bump the major version.
 
 ## Commands
 

@@ -6,7 +6,7 @@
 // so they are not extracted. The CDDL schema is normative too, so each CDDL rule
 // is extracted by name.
 //
-// The registry (`requirements/<version>.yaml`) holds every extracted statement,
+// The registry (`requirements.yaml`) holds every extracted statement,
 // word for word, so the traceability test can prove nothing was missed and
 // nothing was invented.
 

@@ -6,7 +6,7 @@ import { signatureChecks } from "./checks/signature.ts";
 import type { DocumentCheck, FetchCheck, Fetched, JsonObject, Outcome } from "./checks/types.ts";
 import { isObject } from "./checks/walk.ts";
 import { lineOf, type Parsed, parseJson } from "./json.ts";
-import { loadRegistry, type Requirement, specLink } from "./registry.ts";
+import { loadRegistry, type Mode, type Requirement, specLink } from "./registry.ts";
 
 export type Status = "pass" | "fail" | "warn" | "notice" | "n/a" | "skipped" | "expected";
 
@@ -19,6 +19,8 @@ export interface Finding {
 export interface Result {
   id: string;
   strength: Requirement["strength"];
+  /** Whether the check read the document alone or fetched the catalog and its artifacts. */
+  mode: Mode;
   status: Status;
   findings: Finding[];
   /** The requirement's section in the published spec. */
@@ -40,7 +42,6 @@ export interface RunOptions {
   text: string;
   /** A file path or URL naming the catalog in the report. */
   source: string;
-  specVersion?: string;
   /** Run the checks that fetch the catalog's URL and its artifacts. */
   fetch?: boolean;
   /** The URL the catalog was fetched from; relative entry URLs resolve against it. */
@@ -56,7 +57,12 @@ export interface Report {
   source: string;
   spec: { version: string; commit: string };
   fetched: boolean;
-  /** 0 when a MUST of the spec fails; 1 Minimal; 2 Discoverable. Level 3 is not assessed. */
+  /**
+   * The document's conformance level: 0 when a MUST checked from the document fails,
+   * 1 Minimal, 2 Discoverable. Level 3 is not assessed. It is the document's alone,
+   * so it is the same with or without --fetch; what fetching finds is in `results`
+   * (mode `fetch`) and in `failed`.
+   */
   level: 0 | 1 | 2;
   results: Result[];
   counts: Record<Status, number>;
@@ -67,19 +73,21 @@ export interface Report {
 
 export const LEVEL_NAMES = ["not conformant", "Level 1 (Minimal)", "Level 2 (Discoverable)"] as const;
 
-const ALL_CHECKS: Record<string, DocumentCheck | FetchCheck> = {
-  ...documentChecks,
-  ...signatureChecks,
-  ...fetchChecks,
+/**
+ * The checks, filed under their mode. The runner looks a requirement's check up
+ * under the mode the registry gives it, so a check filed under the other mode is
+ * never run as this one: a fetch check cannot run without --fetch.
+ */
+export const CHECKS: { document: Record<string, DocumentCheck>; fetch: Record<string, FetchCheck> } = {
+  document: { ...documentChecks, ...signatureChecks },
+  fetch: fetchChecks,
 };
 
-export function implementedIds(): Set<string> {
-  return new Set(Object.keys(ALL_CHECKS));
-}
-
 export async function run(options: RunOptions): Promise<Report> {
-  const specVersion = options.specVersion ?? "0.9";
-  const registry = loadRegistry(specVersion);
+  const registry = loadRegistry();
+  const specVersion = registry.spec.version;
+  // One fetcher for the run, so each URL is asked for once across every check.
+  const fetcher = options.fetcher ?? cachingFetcher();
   const requirements = registry.requirements.filter((r) => r.check);
 
   let parsed: Parsed | undefined;
@@ -93,7 +101,8 @@ export async function run(options: RunOptions): Promise<Report> {
 
   const results: Result[] = [];
   for (const r of requirements) {
-    const base = { id: r.id, strength: r.strength, link: specLink(registry, r), text: r.text, ...(r.note ? { note: r.note } : {}) };
+    const mode = r.check!;
+    const base = { id: r.id, strength: r.strength, mode, link: specLink(registry, r), text: r.text, ...(r.note ? { note: r.note } : {}) };
     if (!catalog || !parsed) {
       if (r.id === "TOP-1") {
         const message = syntax ? `The document is not JSON: ${syntax}` : "The document is not a JSON object";
@@ -103,19 +112,19 @@ export async function run(options: RunOptions): Promise<Report> {
       }
       continue;
     }
-    if (r.check === "fetch" && !options.fetch) {
+    if (mode === "fetch" && !options.fetch) {
       results.push({ ...base, status: "skipped", findings: [], reason: "Needs --fetch." });
       continue;
     }
-    const check = ALL_CHECKS[r.id];
-    if (!check) throw new Error(`${r.id} is marked checked and has no check`);
+    const check = CHECKS[mode][r.id];
+    if (!check) throw new Error(`${r.id} is marked \`check: ${mode}\` and has no ${mode} check`);
     const ctx = {
       catalog,
       parsed,
       specVersion,
       catalogUrl: options.catalogUrl,
       catalogResponse: options.catalogResponse,
-      fetch: options.fetcher ?? cachingFetcher(),
+      fetch: fetcher,
     };
     const outcome: Outcome = await check(ctx);
     results.push({ ...base, ...statusOf(r, outcome, parsed) });
@@ -132,11 +141,11 @@ export async function run(options: RunOptions): Promise<Report> {
     }
   }
 
-  const specFailed = results.some(
-    (x) => (x.status === "fail" || x.status === "expected") && x.strength.startsWith("MUST"),
+  const documentFailed = results.some(
+    (x) => x.mode === "document" && (x.status === "fail" || x.status === "expected") && x.strength.startsWith("MUST"),
   );
   const host = catalog && isObject(catalog.host) && typeof catalog.host.displayName === "string";
-  const level = !catalog || specFailed ? 0 : host ? 2 : 1;
+  const level = !catalog || documentFailed ? 0 : host ? 2 : 1;
 
   const counts = Object.fromEntries(
     (["pass", "fail", "warn", "notice", "n/a", "skipped", "expected"] as Status[]).map((s) => [
@@ -159,7 +168,6 @@ export async function run(options: RunOptions): Promise<Report> {
     failed,
   };
 }
-
 
 function statusOf(r: Requirement, outcome: Outcome, parsed: Parsed): Pick<Result, "status" | "findings"> {
   if (outcome === "n/a") return { status: "n/a", findings: [] };

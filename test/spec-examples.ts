@@ -1,7 +1,7 @@
 // The spec's example catalogs, and the ones the spec gets wrong.
 
 import { readFileSync } from "node:fs";
-import { specPath } from "../src/registry.ts";
+import { specExamplePath, specPath } from "../src/registry.ts";
 
 /**
  * Spec examples a MUST rightly rejects, keyed by example and requirement: what
@@ -42,7 +42,7 @@ export function examples(markdown: string): { name: string; text: string }[] {
 
 export function specExamples(): { name: string; text: string }[] {
   return [
-    ...examples(readFileSync(specPath("0.9"), "utf8")),
-    { name: "examples/ai-catalog.json", text: readFileSync(new URL("examples/ai-catalog.json", specPath("0.9")), "utf8") },
+    ...examples(readFileSync(specPath, "utf8")),
+    { name: "examples/ai-catalog.json", text: readFileSync(specExamplePath, "utf8") },
   ];
 }

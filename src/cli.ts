@@ -5,16 +5,15 @@ import { appendFileSync, readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import YAML from "yaml";
 import { cachingFetcher } from "./checks/fetch.ts";
-import { SPEC_VERSIONS } from "./registry.ts";
+import { loadRegistry } from "./registry.ts";
 import { github, json, text } from "./report.ts";
 import { type Baseline, run } from "./run.ts";
 
 const USAGE = `Usage: ai-catalog-conformance [options] <catalog>...
 
-Each <catalog> is a file path or an http(s) URL.
+Each <catalog> is a file path or an http(s) URL. Checks AI Catalog ${loadRegistry().spec.version}.
 
 Options:
-  --spec <version>     The spec version to check against (${SPEC_VERSIONS.join(", ")}; default ${SPEC_VERSIONS.at(-1)})
   --fetch              Also fetch the catalog's URL and the artifacts its entries name
   --baseline <file>    YAML listing failures to expect: expected: [{id, reason}]
   --format <format>    text (default), json, or github (annotations for GitHub Actions)
@@ -30,7 +29,6 @@ async function main(): Promise<number> {
     args = parseArgs({
       allowPositionals: true,
       options: {
-        spec: { type: "string", default: SPEC_VERSIONS.at(-1) },
         fetch: { type: "boolean", default: false },
         baseline: { type: "string" },
         format: { type: "string", default: "text" },
@@ -77,7 +75,6 @@ async function main(): Promise<number> {
     const report = await run({
       text: textIn,
       source,
-      specVersion: values.spec,
       fetch: values.fetch,
       ...(remote ? { catalogUrl: catalogResponse!.url, catalogResponse } : {}),
       fetcher,

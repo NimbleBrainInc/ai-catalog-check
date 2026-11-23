@@ -113,6 +113,7 @@ export function isRfc3339(s: string): boolean {
 export const SEMVER =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
 
+/** The media types checks act on by name. A test holds each to the spec's list. */
 export const MEDIA_TYPES = {
   aiCatalog: "application/ai-catalog+json",
   agentCard: "application/agent-card+json",
@@ -125,5 +126,3 @@ export const MEDIA_TYPES = {
   agentPluginsZip: "application/agent-plugins+zip",
   agentPluginsGzip: "application/agent-plugins+gzip",
 } as const;
-
-export const KNOWN_TYPES: ReadonlySet<string> = new Set(Object.values(MEDIA_TYPES));
