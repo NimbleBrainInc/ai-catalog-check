@@ -14,7 +14,7 @@ import {
   manifests,
   member,
   objectsIn,
-  RFC3339,
+  isRfc3339,
   SEMVER,
   signatures,
   urnAir,
@@ -57,7 +57,7 @@ function typeOk(v: Json, kind: Kind): boolean {
     case "map[]":
       return Array.isArray(v) && v.every((x) => isObject(x));
     case "tdate":
-      return typeof v === "string" && RFC3339.test(v);
+      return typeof v === "string" && isRfc3339(v);
     case "uint":
       return typeof v === "number" && Number.isInteger(v) && v >= 0;
   }
@@ -281,9 +281,9 @@ export const documentChecks: Record<string, DocumentCheck> = {
         const inData = (p: string) => p === `${e.at}/data` || p.startsWith(`${e.at}/data/`);
         return [
           ...parsed.duplicates.filter(inData).map((at) => ({ at, message: "this member name repeats in its object" })),
-          ...parsed.unsafeIntegers
+          ...parsed.unsafeNumbers
             .filter(inData)
-            .map((at) => ({ at, message: "this integer is beyond what an IEEE 754 double holds exactly" })),
+            .map((at) => ({ at, message: "this number is beyond what an IEEE 754 double holds exactly" })),
           ...parsed.loneSurrogates.filter(inData).map((at) => ({ at, message: "this string has a lone surrogate" })),
         ];
       },
@@ -447,7 +447,7 @@ export const documentChecks: Record<string, DocumentCheck> = {
       signatures(catalog).filter((s) => has(s.value, "expiresAt")),
       (s) => {
         const { issuedAt, expiresAt } = s.value;
-        if (!str(issuedAt) || !str(expiresAt) || !RFC3339.test(issuedAt) || !RFC3339.test(expiresAt)) return [];
+        if (!str(issuedAt) || !str(expiresAt) || !isRfc3339(issuedAt) || !isRfc3339(expiresAt)) return [];
         return Date.parse(expiresAt) > Date.parse(issuedAt)
           ? []
           : [{ at: pointer(s.at, "expiresAt"), message: "`expiresAt` is not later than `issuedAt`" }];

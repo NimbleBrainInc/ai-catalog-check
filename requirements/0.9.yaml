@@ -303,8 +303,8 @@ requirements:
     role: producer
     check: document
     level: 1
-    note: "Checked as: no duplicate member names, no lone surrogates, and integers within the range IEEE
-      754 doubles represent exactly."
+    note: "Checked as: no duplicate member names, no lone surrogates, numbers within a double's range,
+      and integer values (in any spelling) within the range IEEE 754 doubles represent exactly."
     text: Inline `data` MUST satisfy JCS's input requirements for artifact verification to succeed.
   - id: NAME-1
     section: resolving-an-artifact-s-display-name

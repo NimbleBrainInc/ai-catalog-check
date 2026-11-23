@@ -9,6 +9,7 @@ import { describe, it } from "node:test";
 import { documentChecks } from "../src/checks/document.ts";
 import { nimblebrainChecks } from "../src/checks/nimblebrain.ts";
 import { signatureChecks } from "../src/checks/signature.ts";
+import { parseJson } from "../src/json.ts";
 import { type Report, run } from "../src/run.ts";
 import { CASES, check, COMPLETE, mutated, statusOf } from "./cases.ts";
 
@@ -47,6 +48,31 @@ describe("levels", () => {
     const report = await check((c) => (c.entries[0].publisher.identifier = "other.example"), ["nimblebrain"]);
     assert.equal(report.level, 2);
     assert.equal(report.failed, true);
+  });
+});
+
+describe("boundaries that pass", () => {
+  it("accepts February 29 of a leap year and the last day of each month", async () => {
+    for (const updatedAt of ["2024-02-29T12:00:00Z", "2000-02-29T00:00:00Z", "2026-04-30T00:00:00Z", "2026-12-31T23:59:59Z"]) {
+      assert.equal(statusOf(await check((c) => (c.entries[0].updatedAt = updatedAt)), "CDDL-CatalogEntry"), "pass", updatedAt);
+    }
+  });
+  it("accepts safe integers and finite numbers in data, in any spelling", async () => {
+    for (const n of ["9007199254740991", "-9007199254740991e0", "9007199254740.991e3", "1.5", "2.5e-300"]) {
+      const text = mutated({ id: "ENTRY-18", expect: "pass", why: n, mutate: (c) => (c.entries[4].data.big = "__N__") }).replace('"__N__"', n);
+      assert.equal(statusOf(await run({ text, source: "test" }), "ENTRY-18"), "pass", n);
+    }
+  });
+});
+
+describe("member names", () => {
+  it("keeps __proto__ as an ordinary member, never a prototype", async () => {
+    const text = '{"specVersion":"0.9","entries":[],"__proto__":{"host":{"displayName":"inherited"}}}';
+    const report = await run({ text, source: "test" });
+    assert.equal(report.level, 1);
+    const { value } = parseJson(text) as { value: Record<string, unknown> };
+    assert.ok(Object.hasOwn(value, "__proto__"));
+    assert.equal(Object.getPrototypeOf(value), Object.prototype);
   });
 });
 

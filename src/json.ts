@@ -1,5 +1,5 @@
 // A JSON parser that keeps what `JSON.parse` throws away: the line each value
-// starts on, member names that repeat within an object, integers an IEEE 754
+// starts on, member names that repeat within an object, numbers an IEEE 754
 // double cannot hold exactly, and strings with lone surrogates. ENTRY-18 needs
 // the last three; reports need the lines.
 
@@ -11,8 +11,8 @@ export interface Parsed {
   lines: Map<string, number>;
   /** Pointers to members whose name already appeared in the same object. */
   duplicates: string[];
-  /** Pointers to integers outside ±(2^53 - 1). */
-  unsafeIntegers: string[];
+  /** Pointers to numbers beyond a double's range, or integer-valued beyond ±(2^53 - 1), in any spelling. */
+  unsafeNumbers: string[];
   /** Pointers to strings (or member names) holding a lone surrogate. */
   loneSurrogates: string[];
 }
@@ -36,7 +36,7 @@ export function parseJson(text: string): Parsed {
   let line = 1;
   const lines = new Map<string, number>();
   const duplicates: string[] = [];
-  const unsafeIntegers: string[] = [];
+  const unsafeNumbers: string[] = [];
   const loneSurrogates: string[] = [];
 
   const fail = (message: string): never => {
@@ -90,7 +90,9 @@ export function parseJson(text: string): Parsed {
         space();
         if (text[i] !== ":") fail("expected ':'");
         i++;
-        out[key] = value(child);
+        // A defined property, not assignment: `out["__proto__"] = …` would set the
+        // object's prototype instead of creating the member.
+        Object.defineProperty(out, key, { value: value(child), enumerable: true, writable: true, configurable: true });
         space();
         if (text[i] === ",") {
           i++;
@@ -133,14 +135,15 @@ export function parseJson(text: string): Parsed {
     if (raw === "true") return true;
     if (raw === "false") return false;
     if (raw === "null") return null;
-    if (/^-?\d+$/.test(raw) && !Number.isSafeInteger(Number(raw))) unsafeIntegers.push(at);
-    return Number(raw);
+    const n = Number(raw);
+    if (!Number.isFinite(n) || (Number.isInteger(n) && !Number.isSafeInteger(n))) unsafeNumbers.push(at);
+    return n;
   };
 
   const parsed = value("");
   space();
   if (i < text.length) fail("unexpected content after the document");
-  return { value: parsed, lines, duplicates, unsafeIntegers, loneSurrogates };
+  return { value: parsed, lines, duplicates, unsafeNumbers, loneSurrogates };
 }
 
 /** The line of the value at `at`, or of its nearest ancestor that has one. */

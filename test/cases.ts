@@ -129,15 +129,21 @@ export const CASES: Case[] = [
   { id: "TYPO-2", expect: "warn", why: "http URL identifier", mutate: (c) => (c.entries[0].identifier = "http://acme.example/weather") },
   { id: "PRIVACY-1", expect: "warn", why: "https logo", mutate: (c) => (c.host.logoUrl = "https://acme.example/logo.svg") },
   { id: "ENTRY-18", expect: "fail", why: "unsafe integer in data", mutate: (c) => (c.entries[4].data.big = "__BIG__") },
+  { id: "ENTRY-18", expect: "fail", why: "unsafe integer in exponent form", mutate: (c) => (c.entries[4].data.big = "__BIG_EXP__") },
+  { id: "ENTRY-18", expect: "fail", why: "number beyond a double's range", mutate: (c) => (c.entries[4].data.big = "__OVERFLOW__") },
   { id: "CDDL-AICatalog", expect: "fail", why: "entries holds a string", mutate: (c) => c.entries.push("x") },
   { id: "CDDL-AICatalog", expect: "fail", why: "specVersion number", mutate: (c) => (c.specVersion = 0.9) },
   { id: "CDDL-HostInfo", expect: "fail", why: "displayName number", mutate: (c) => (c.host.displayName = 1) },
   { id: "CDDL-CatalogEntry", expect: "fail", why: "tags not strings", mutate: (c) => (c.entries[0].tags = [1]) },
   { id: "CDDL-CatalogEntry", expect: "fail", why: "updatedAt not RFC 3339", mutate: (c) => (c.entries[0].updatedAt = "2026-11-01") },
+  { id: "CDDL-CatalogEntry", expect: "fail", why: "updatedAt on February 31", mutate: (c) => (c.entries[0].updatedAt = "2026-02-31T12:00:00Z") },
+  { id: "CDDL-CatalogEntry", expect: "fail", why: "updatedAt on February 29 of a common year", mutate: (c) => (c.entries[0].updatedAt = "2100-02-29T12:00:00Z") },
+  { id: "CDDL-CatalogEntry", expect: "fail", why: "updatedAt on April 31", mutate: (c) => (c.entries[0].updatedAt = "2026-04-31T12:00:00Z") },
   { id: "CDDL-Publisher", expect: "fail", why: "identityType number", mutate: (c) => (c.entries[0].publisher.identityType = 1) },
   { id: "CDDL-TrustManifest", expect: "fail", why: "attestations not array", mutate: (c) => (assessor(c).attestations = {}) },
   { id: "CDDL-Subject", expect: "fail", why: "subject version number", mutate: (c) => (signed(c).subject.version = 2) },
   { id: "CDDL-Signature", expect: "fail", why: "issuedAt not a date", mutate: (c) => (signed(c).signature.issuedAt = "yesterday") },
+  { id: "CDDL-Signature", expect: "fail", why: "issuedAt on February 30", mutate: (c) => (signed(c).signature.issuedAt = "2026-02-30T00:00:00Z") },
   { id: "CDDL-TrustSchema", expect: "fail", why: "verificationMethods not strings", mutate: (c) => (assessor(c).trustSchema.verificationMethods = [1]) },
   { id: "CDDL-Attestation", expect: "fail", why: "negative size", mutate: (c) => (assessor(c).attestations[0].size = -1) },
   { id: "CDDL-ProvenanceLink", expect: "fail", why: "relation number", mutate: (c) => (assessor(c).provenance[0].relation = 1) },
@@ -156,6 +162,9 @@ export const CASES: Case[] = [
 export function mutated(c: Case): string {
   const catalog = JSON.parse(COMPLETE);
   c.mutate(catalog);
-  // JSON.stringify cannot write an unsafe integer, so ENTRY-18's case splices one in.
-  return JSON.stringify(catalog, null, 2).replace('"__BIG__"', "9007199254740993");
+  // JSON.stringify cannot write an unsafe number, so ENTRY-18's cases splice one in.
+  return JSON.stringify(catalog, null, 2)
+    .replace('"__BIG__"', "9007199254740993")
+    .replace('"__BIG_EXP__"', "9007199254740993e0")
+    .replace('"__OVERFLOW__"', "1e400");
 }
