@@ -38,6 +38,11 @@ export interface Result {
   reason?: string;
 }
 
+export interface StaleBaseline {
+  id: string;
+  why: string;
+}
+
 export interface Baseline {
   expected: { id: string; reason: string }[];
 }
@@ -77,8 +82,8 @@ export interface Report {
   level: 0 | 1 | 2;
   results: Result[];
   counts: Record<Status, number>;
-  /** Baseline entries whose requirement no longer fails. */
-  staleBaseline: string[];
+  /** Baseline entries that cover nothing: the requirement passes, or is not one the suite checks. */
+  staleBaseline: StaleBaseline[];
   failed: boolean;
 }
 
@@ -141,14 +146,18 @@ export async function run(options: RunOptions): Promise<Report> {
     results.push({ ...base, ...statusOf(r, outcome, parsed) });
   }
 
-  const staleBaseline: string[] = [];
+  // A baseline entry covers a failure or a warning. One that covers nothing, or
+  // names no checked requirement, fails the run, so the baseline only shrinks.
+  const staleBaseline: StaleBaseline[] = [];
   for (const { id, reason } of options.baseline?.expected ?? []) {
     const result = results.find((x) => x.id === id);
-    if (result?.status === "fail") {
+    if (!result) {
+      staleBaseline.push({ id, why: "is not a requirement this suite checks" });
+    } else if (result.status === "fail" || result.status === "warn") {
       result.status = "expected";
       result.reason = reason;
-    } else if (result && result.status !== "skipped") {
-      staleBaseline.push(id);
+    } else if (result.status !== "skipped") {
+      staleBaseline.push({ id, why: "no longer fails or warns; remove it from the baseline" });
     }
   }
 

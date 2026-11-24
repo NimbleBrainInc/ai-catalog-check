@@ -140,8 +140,8 @@ export function text(report: Report, options: TextOptions = {}): string {
     }
   }
 
-  for (const id of report.staleBaseline) {
-    lines.push("", `${p.red("✗")} ${id} is in the baseline and no longer fails; remove it from the baseline`);
+  for (const { id, why } of report.staleBaseline) {
+    lines.push("", `${p.red("✗")} baseline entry ${id} ${why}`);
   }
 
   const c = report.counts;

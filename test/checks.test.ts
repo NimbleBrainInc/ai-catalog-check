@@ -101,7 +101,30 @@ describe("baseline", () => {
       source: "test",
       baseline: { expected: [{ id: "SVPROD-1", reason: "fixed already" }] },
     });
-    assert.deepEqual(report.staleBaseline, ["SVPROD-1"]);
+    assert.deepEqual(report.staleBaseline.map((x) => x.id), ["SVPROD-1"]);
+    assert.equal(report.failed, true);
+  });
+  it("covers a warning, so --strict passes", async () => {
+    const catalog = JSON.parse(COMPLETE);
+    catalog.additionalSignatures = [];
+    const report = await run({
+      text: JSON.stringify(catalog),
+      source: "test",
+      strict: true,
+      baseline: { expected: [{ id: "TOP-2", reason: "a generator we do not control" }] },
+    });
+    assert.equal(statusOf(report, "TOP-2"), "expected");
+    assert.deepEqual(report.staleBaseline, []);
+    assert.equal(report.failed, false);
+    assert.equal(report.level, 2);
+  });
+  it("leaves alone an entry whose check did not run (needs --fetch)", async () => {
+    const report = await run({ text: COMPLETE, source: "test", baseline: { expected: [{ id: "LOC-1", reason: "Pages" }] } });
+    assert.deepEqual(report.staleBaseline, []);
+  });
+  it("fails on an entry that names no checked requirement", async () => {
+    const report = await run({ text: COMPLETE, source: "test", baseline: { expected: [{ id: "LOC-11", reason: "typo" }] } });
+    assert.deepEqual(report.staleBaseline, [{ id: "LOC-11", why: "is not a requirement this suite checks" }]);
     assert.equal(report.failed, true);
   });
 });

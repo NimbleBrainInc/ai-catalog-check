@@ -22,7 +22,7 @@ Options:
   --baseline <file>    YAML listing failures to expect: expected: [{id, reason}]
   --format <format>    text (default), json, or github (annotations for GitHub Actions)
   --strict             Fail on warnings as well as failures
-  -v, --verbose        List every result, passing ones too, with the spec sentence each checks
+  -v, --verbose        List every result by part of the spec, passing ones too, and every finding
   -h, --help           Show this help
 
 Exits 1 when a requirement fails, 2 on a usage error.`;

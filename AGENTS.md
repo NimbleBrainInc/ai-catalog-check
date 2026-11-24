@@ -42,6 +42,9 @@ README says what it does for a user; this file is for changing it.
   free number in its section, and retires a removed one; never renumber.
 - **Every entry has exactly one disposition.** `check`, `pending` with a `reason`, or
   `excluded` with a reason. "Restates X" is a reason; so is "binds consumers".
+- **Every checked requirement has a `title`**: a few words naming what it asks
+  ("Host has a displayName"), shown in every report. A test fails on a checked
+  requirement without one.
 - **A requirement's strength sets its status.** MUST fails, SHOULD warns. A check does
   not choose; the one exception is a notice (`notice: true` on a violation), for
   advice the spec hedges with "when applicable".

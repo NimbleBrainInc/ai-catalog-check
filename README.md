@@ -1,143 +1,245 @@
 # ai-catalog-conformance
 
-A conformance suite for the [AI Catalog specification](https://ai-catalog.io/spec/)
-(`application/ai-catalog+json`). Every normative statement of the spec is numbered,
-quoted word for word, and either checked, pending, or excluded with a reason. Each
-finding names the requirement it breaks and links to it in the spec.
+Check an [AI Catalog](https://ai-catalog.io/spec/) against the spec. Point it at your
+website or your `ai-catalog.json` and it tells you whether the catalog conforms, at
+which level, and which spec requirement each problem breaks, with the line it is on.
 
-It checks **AI Catalog 0.9** (the 1.0 release candidate,
-[v0.9.0](https://github.com/Agent-Card/ai-catalog/releases/tag/v0.9.0)). Each release
-line checks one version of the spec: `v0.x` checks 0.9, and 1.0 will start `v1.x`, so
-a pinned version never changes which spec it holds you to.
+This release checks **AI Catalog 0.9**, the 1.0 release candidate
+([v0.9.0](https://github.com/Agent-Card/ai-catalog/releases/tag/v0.9.0)).
 
-## Use it in GitHub Actions
+## Check your catalog
 
-```yaml
-- uses: NimbleBrainInc/ai-catalog-conformance@v0.1.0
-  with:
-    catalogs: dist/.well-known/ai-catalog.json
+You need Node.js 20 or later.
+
+```sh
+npx github:NimbleBrainInc/ai-catalog-conformance#v0.1.0 https://your-site.example
 ```
 
-Each finding becomes an annotation on the catalog's line in the pull request, and
-the report goes to the job summary. Inputs:
+Pass your website, your catalog's URL, or a local file. For a website, the suite
+finds the catalog the way the spec tells an agent to: from a `Link` header with
+`rel="ai-catalog"`, then from an HTML `<link rel="ai-catalog">`, then at
+`/.well-known/ai-catalog.json`.
+
+A catalog that fails looks like this:
+
+```
+AI Catalog 0.9 · https://catalog.nimblebrain.ai/.well-known/ai-catalog.json
+found via <link rel="ai-catalog"> on https://catalog.nimblebrain.ai
+
+✗ Not conformant: 1 MUST fails
+
+  ✗ SVPROD-1  specVersion is the version implemented  MUST
+      line 2  /specVersion  is "1.0"; this suite checks AI Catalog "0.9"
+      https://ai-catalog.io/spec/#producer-behavior
+
+19 passed · 1 failed · 42 not applicable · 7 need --fetch
+```
+
+Read it top down:
+
+1. **Where the catalog came from.** The suite names the URL it checked and how it
+   found it.
+2. **The verdict.** `✓ Conforms at Level 2 (Discoverable)`, or `✗ Not conformant`
+   with the number of MUSTs that fail.
+3. **Each problem.** Its ID and name, the requirement's strength, then each place in
+   your catalog that breaks it (line, JSON path, what is wrong), then a link to the
+   spec section.
+4. **The counts.** The summary leaves out the zeros.
+
+The command exits with 0 when nothing fails, 1 when a requirement fails, and 2 when
+you call it wrong. CI reads that exit code.
+
+## Fix what it finds
+
+Start with the `✗` lines. Each one breaks a MUST, and the catalog does not conform
+until you fix it. The finding tells you what it found, and the link takes you to the
+sentence of the spec that requires otherwise. In the example above, the catalog says
+`"specVersion": "1.0"`, and the fix is `"0.9"`, the version it implements.
+
+`!` lines break a SHOULD: something the spec recommends and your catalog does not
+do. They fail the run only when you pass `--strict`. An `i` line is a notice. The spec hedges a few
+recommendations with "when applicable", and only you can say whether one applies.
+
+To see what the suite checked, passing results included, add `-v`:
+
+```
+✗ Not conformant: 1 MUST fails
+
+Catalog
+  ✓ TOP-1                Catalog has specVersion and entries               MUST
+  ✓ TOP-2                Catalog omits additionalSignatures                SHOULD
+  ✓ HOST-1               Host has a displayName                            MUST
+  ✗ SVPROD-1             specVersion is the version implemented            MUST
+      line 2  /specVersion  is "1.0"; this suite checks AI Catalog "0.9"
+      https://ai-catalog.io/spec/#producer-behavior
+  · PRIVACY-1            Host logo is a Data URI                           n/a
+...
+Trust Manifests
+  · 15 requirements, none applicable to this catalog
+```
+
+[COVERAGE.md](COVERAGE.md) lists every requirement by ID with the spec's sentence.
+Look an ID up there when the name alone does not tell you enough.
+
+## Levels
+
+The spec defines [three conformance levels](https://ai-catalog.io/spec/#conformance-levels):
+
+| Level | You get it when |
+|---|---|
+| 1 Minimal | No MUST fails |
+| 2 Discoverable | Level 1, and the catalog has a `host` naming its operator |
+| 3 Trusted | Entries carry signed Trust Manifests that verify. The suite does not verify signatures yet, so it never reports Level 3. |
+
+The level judges the document alone. A file and its live copy get the same level.
+
+## Check the live copy
+
+Add `--fetch` to also check what only the served catalog shows:
+
+- the media type each URL serves (`application/ai-catalog+json` for the catalog,
+  and the `type` an entry declares for its artifact)
+- each `digest` against the bytes its URL serves
+- names, descriptions and versions an entry restates from the MCP Server Card or
+  A2A Agent Card it points to
+
+These results print on their own line under the verdict. They do not change the
+level, but a failure among them still fails the run. Leave `--fetch` off when you
+check a build before you deploy it, because its entries may point at artifacts that
+are not live yet.
+
+## Run it in CI
+
+The repository is also a GitHub Action. Each problem becomes an annotation on the
+catalog's line in the pull request, and the report appears on the job's summary page.
+
+Check the catalog your build produces, on every pull request:
+
+```yaml
+name: AI Catalog
+on: pull_request
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm ci && npm run build      # whatever writes your catalog
+      - uses: NimbleBrainInc/ai-catalog-conformance@v0.1.0
+        with:
+          catalogs: dist/.well-known/ai-catalog.json
+```
+
+Check the live site on a schedule, so a broken deploy or a moved artifact shows up:
+
+```yaml
+name: AI Catalog (live)
+on:
+  schedule:
+    - cron: "0 6 * * *"
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: NimbleBrainInc/ai-catalog-conformance@v0.1.0
+        with:
+          catalogs: https://your-site.example
+          fetch: true
+```
 
 | Input | Default | |
 |---|---|---|
-| `catalogs` | (required) | Files, catalog URLs, or websites, one per line |
-| `fetch` | `false` | Also fetch the catalog's URL and the artifacts its entries name |
-| `baseline` | | A YAML file of failures to expect (see below) |
-| `strict` | `false` | Fail on warnings too |
-| `verbose` | `false` | List every result in the job summary, passing ones too |
+| `catalogs` | required | Files, catalog URLs or websites, one per line |
+| `fetch` | `false` | Also check the live copy and its artifacts |
+| `baseline` | | A file of failures to expect (below) |
+| `strict` | `false` | Fail on warnings as well |
+| `verbose` | `false` | List every result in the job summary |
 
-Check the built file before merge, and the live catalog with `fetch: true` on a
-schedule: fetching checks what only the served copy shows (media types, digests
-against the bytes, names and versions the artifacts carry), and a catalog checked
-before it deploys may name artifacts that are not live yet.
+Pin the action to a version tag (`@v0.1.0`) or a commit SHA. A new release can add a
+check that your catalog fails.
 
-## Use it from the command line
+## Options
 
-```sh
-npx github:NimbleBrainInc/ai-catalog-conformance#v0.1.0 ./ai-catalog.json
-npx github:NimbleBrainInc/ai-catalog-conformance#v0.1.0 --fetch https://example.com/
-```
-
-```
-AI Catalog 0.9: https://example.com/.well-known/ai-catalog.json
-not conformant. Level 3 (Trusted) is not assessed.
-
-✗ SVPROD-1 MUST
-    /specVersion (line 2): is "1.0"; this suite checks AI Catalog "0.9"
-    https://ai-catalog.io/spec/#producer-behavior
-```
-
-Give it a file, a catalog's URL, or a website. A URL that is not itself a catalog is
-treated as a website, and its catalog is found the way the spec's
-[discovery](https://ai-catalog.io/spec/#link-relation-discovery) says an agent should:
-a `Link` header with `rel="ai-catalog"`, then an HTML `<link rel="ai-catalog">`, then
-`/.well-known/ai-catalog.json`. The report says where it found the catalog, and when
-it finds none, what it tried.
-
-By default the report lists only what needs attention. `--verbose` (`-v`) lists every
-checked requirement with its status, the spec sentence it checks, and every finding;
-a requirement that was skipped or did not apply says why. `--format json` gives the
-whole report to a program; `--format github` writes workflow annotations. The exit
-code is 1 when a requirement fails.
-
-## What a result means
-
-A requirement's strength decides what breaking it does:
-
-| Status | When |
+| Flag | |
 |---|---|
-| `fail` | A MUST or MUST NOT is broken. The run fails. |
-| `warn` | A SHOULD or SHOULD NOT is broken. The run passes unless `--strict`. |
-| `notice` | Worth a look, not a breach (an unrecognized `type`). |
-| `n/a` | The catalog has nothing the requirement applies to. |
-| `skipped` | It needs `--fetch`. |
-| `expected` | It fails, and the baseline says to expect that. |
+| `--fetch` | Also check the live copy and its artifacts |
+| `-v`, `--verbose` | List every result by part of the spec, passing ones too, and every finding |
+| `--strict` | Fail on warnings as well as failures |
+| `--baseline <file>` | Expect the failures the file lists |
+| `--format text\|json\|github` | `json` gives a program the whole report; `github` writes workflow annotations |
 
-The report gives the catalog's [conformance level](https://ai-catalog.io/spec/#conformance-levels):
-Level 1 (Minimal) when no MUST checked from the document fails, Level 2
-(Discoverable) when it also has a `host`. Level 3 (Trusted) needs signature
-verification, which the suite does not do yet. The level is the document's, so a
-file and its served copy get the same one; with `--fetch`, what the live copy and
-its artifacts show is reported beside it, and a failure there still fails the run.
+## Expect a failure you cannot fix yet
 
-## The requirements
-
-[`requirements.yaml`](requirements.yaml) holds one entry for every sentence
-of the spec that carries MUST, SHALL, REQUIRED, SHOULD or RECOMMENDED, one for each
-CDDL rule, and one for each definition the spec states without a keyword (the digest
-format, the stored JWS form). Each entry has an ID (`ENTRY-7`, `SUBJ-4`, `CDDL-Publisher`),
-the role it binds, and one disposition:
-
-- **checked**: from the document alone, or by fetching (`check: document | fetch`)
-- **pending**: checkable and not yet built, with the reason (mostly Level 3 signature verification)
-- **excluded**: not checkable from a catalog (it binds consumers, or needs the catalog's history, or is a judgment), or checked under another ID
-
-[COVERAGE.md](COVERAGE.md) lists all of them with the current counts. Most of
-what is not checked binds consumers and signature verifiers, not the catalog.
-
-What the checks need to know about the spec beyond its sentences (the members and
-types of each CDDL rule, the recognized media types, the protected `typ` of each
-signed object) is read from the vendored spec, not copied into the code.
-
-Tests hold the registry to the spec: every normative statement of the vendored
-spec has exactly one entry, every checked entry has a check and a test that breaks
-it, and every check belongs to an entry.
-
-## Baseline
-
-A catalog that knowingly fails a requirement can say so, with a reason:
+Some failures and warnings sit outside your control for a while. GitHub Pages, for example,
+cannot serve `application/ai-catalog+json`. List those in a baseline file with the
+reason:
 
 ```yaml
 expected:
   - id: LOC-1
-    reason: GitHub Pages cannot serve application/ai-catalog+json
+    reason: GitHub Pages cannot set the media type
 ```
 
-An expected failure does not fail the run. A baseline entry that no longer fails
-does, so the baseline only ever shrinks.
+```sh
+npx github:NimbleBrainInc/ai-catalog-conformance#v0.1.0 --baseline ai-catalog-baseline.yaml --fetch https://your-site.example
+```
 
-## Cross-checked against the SDK
+An expected result shows as `~`, with your reason, and does not fail the run, even
+with `--strict`. An expected MUST still costs the level, because the catalog still
+breaks it. When the problem goes away, or an entry names an ID the suite does not
+check, the run fails until you fix the entry, so the file lists only problems you
+still have.
 
-CI builds [Vercel's TypeScript SDK](https://github.com/vercel-labs/ai-catalog-sdk) at
-its 0.9 release and runs it on the same corpus (a complete catalog, one break of each
-requirement, and the spec's examples). Whatever the SDK rejects, the suite must fail
-on a MUST of the spec.
+## How the suite works
 
-## Findings about the spec and SDK
+**Every requirement has an ID.** [`requirements.yaml`](requirements.yaml) holds
+one entry for each sentence of the spec that says MUST, SHALL, REQUIRED, SHOULD or
+RECOMMENDED, quoted word for word. It also holds one entry for each CDDL rule and one
+for each definition the spec states without a keyword, such as the digest format.
+Each one has a permanent ID (`ENTRY-7`, `SUBJ-4`),
+the role it binds, and one of three dispositions:
 
-- The spec's multi-artifact example (and `specification/examples/ai-catalog.json`)
-  signs with the placeholder `detached-jws-signature`, which is not canonical base64url
-  nor an ES256 signature's 64 bytes. The SDK rejects it as well.
-- The SDK (0.1.0) accepts catalogs that break these MUSTs: a `specVersion` other than
-  its own (SVPROD-1), extension keys that are neither URLs nor reverse-DNS (EXTKEY-2),
-  a Policy URLs value that is not an object or has non-string members (POLICY-1,
-  CDDL-PolicyUrls), and inline `data` outside I-JSON (ENTRY-18).
+- **checked**, from the document alone or by fetching
+- **pending**, checkable but not built yet, with the reason (mostly signature verification)
+- **excluded**, with the reason: it binds consumers rather than catalogs, needs the
+  catalog's history, calls for judgment, or restates a requirement checked under
+  another ID
+
+[COVERAGE.md](COVERAGE.md) lists them all, with the counts.
+
+**The strength decides the result.** A broken MUST fails and a broken SHOULD warns.
+No check overrides that.
+
+**The suite reads facts from the spec.** It takes the members and types of each
+object from the spec's CDDL, and the media types and signature `typ` values from
+the spec's own lists. Nothing restates them in code, so the next spec version
+updates them.
+
+**Tests hold the suite to the spec.** They re-read the vendored spec in
+[`spec/`](spec) and fail when a normative sentence has no entry or an entry quotes
+text the spec does not contain. Every checked requirement has a check and a test
+that breaks it. The spec's own example catalogs run through the suite.
+
+**CI cross-checks it against another implementation.** It builds
+[Vercel's TypeScript SDK](https://github.com/vercel-labs/ai-catalog-sdk) at its 0.9
+release, runs both on the same catalogs, and fails if the SDK rejects a catalog that
+passes every MUST here.
+
+**One spec version per release line.** `v0.x` checks 0.9. When 1.0 changes what a
+requirement means, it gets a new major version, so the tag you pin keeps holding you
+to the same spec.
+
+## Problems found in the spec and the SDK
+
+- The spec's multi-artifact example, and `specification/examples/ai-catalog.json`,
+  sign with the placeholder `detached-jws-signature`. That value is neither canonical
+  base64url nor the 64 bytes of an ES256 signature, and the SDK rejects it too.
+- The SDK (0.1.0) accepts catalogs that break five MUSTs: a `specVersion` other than
+  its own (SVPROD-1), extension keys that are neither URLs nor reverse-DNS names
+  (EXTKEY-2), a Policy URLs value that is not an object (POLICY-1) or has non-string
+  members (CDDL-PolicyUrls), and inline `data` outside I-JSON (ENTRY-18).
 
 ## License
 
-The code is [Apache-2.0](LICENSE). The specification text in `spec/` and quoted in
-`requirements.yaml` is the AI Catalog Working Group's, under
-[CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/); see [NOTICE](NOTICE).
+The code is [Apache-2.0](LICENSE). The spec text in `spec/` and quoted in
+`requirements.yaml` belongs to the AI Catalog Working Group and is licensed
+[CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/). See [NOTICE](NOTICE).
