@@ -9,7 +9,7 @@ This release checks **AI Catalog 0.9**, the 1.0 release candidate
 
 ## Check your catalog
 
-You need Node.js 20 or later.
+You need Node.js 20.19 or later.
 
 ```sh
 npx github:NimbleBrainInc/ai-catalog-conformance#v0.1.0 https://your-site.example

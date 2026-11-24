@@ -3,6 +3,7 @@
 // link relation in its HTTP `Link` header, else in its HTML `<link>` elements,
 // else the well-known URI. What it finds must be JSON with a `specVersion`.
 
+import { parse } from "parse5";
 import type { Fetched } from "./checks/types.ts";
 
 export type Via = "direct" | "link-header" | "html-link" | "well-known";
@@ -52,19 +53,55 @@ const hasRel = (rel: string) => rel.toLowerCase().split(/\s+/).includes("ai-cata
 export function linkHeaderTarget(header: string, base: string): string | undefined {
   for (const m of header.matchAll(/<([^>]*)>((?:\s*;\s*[^;,]+)*)/g)) {
     const rel = /;\s*rel\s*=\s*(?:"([^"]*)"|([^\s;,]+))/i.exec(m[2] ?? "");
-    if (rel && hasRel(rel[1] ?? rel[2] ?? "")) return new URL(m[1]!, base).href;
+    if (!rel || !hasRel(rel[1] ?? rel[2] ?? "")) continue;
+    try {
+      return new URL(m[1]!, base).href;
+    } catch {
+      // A target that does not parse leads nowhere; look for the next one.
+    }
   }
   return undefined;
 }
 
-/** The `href` of the first `<link rel="ai-catalog">` in an HTML document. */
-export function htmlLinkTarget(html: string, base: string): string | undefined {
-  for (const tag of html.matchAll(/<link\b[^>]*>/gi)) {
-    const attrs: Record<string, string> = {};
-    for (const a of tag[0].matchAll(/([A-Za-z_:][-\w:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/g)) {
-      attrs[a[1]!.toLowerCase()] = a[2] ?? a[3] ?? a[4] ?? "";
+interface HtmlNode {
+  nodeName: string;
+  attrs?: { name: string; value: string }[];
+  childNodes?: HtmlNode[];
+}
+
+/** The document's elements in tree order. Comments, text and inert `<template>` contents are not elements. */
+function* elements(node: HtmlNode): Generator<HtmlNode> {
+  if (node.attrs) yield node;
+  for (const child of node.childNodes ?? []) yield* elements(child);
+}
+
+const attr = (el: HtmlNode, name: string) => el.attrs?.find((a) => a.name === name)?.value;
+
+/**
+ * The `href` of the first `<link rel="ai-catalog">` in an HTML document, resolved
+ * as a browser would: against the document's `<base href>` when it has one. The
+ * HTML parser (parse5) decodes character references and leaves out what a browser
+ * would not treat as an element, such as a link inside a comment.
+ */
+export function htmlLinkTarget(html: string, pageUrl: string): string | undefined {
+  const all = [...elements(parse(html) as unknown as HtmlNode)];
+  const baseHref = all.find((el) => el.nodeName === "base" && attr(el, "href") !== undefined);
+  let base = pageUrl;
+  try {
+    if (baseHref) base = new URL(attr(baseHref, "href")!, pageUrl).href;
+  } catch {
+    // An unparseable <base href> leaves the page's URL as the base, as in a browser.
+  }
+  for (const el of all) {
+    if (el.nodeName !== "link") continue;
+    const rel = attr(el, "rel");
+    const href = attr(el, "href");
+    if (rel === undefined || href === undefined || !hasRel(rel)) continue;
+    try {
+      return new URL(href, base).href;
+    } catch {
+      // A link whose href does not parse leads nowhere; look for the next one.
     }
-    if (attrs.rel && attrs.href && hasRel(attrs.rel)) return new URL(attrs.href, base).href;
   }
   return undefined;
 }

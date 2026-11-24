@@ -110,6 +110,43 @@ describe("link parsing", () => {
     assert.equal(linkHeaderTarget('</a>; rel="ai-catalogue"', "https://x.example/"), undefined);
   });
 
+  it("decodes character references in href (r5c1)", async () => {
+    const found = await discover(
+      "https://a.example/",
+      web({
+        "https://a.example/": html(`<link rel="ai-catalog" href="/catalog.json?a=1&amp;b=2">`),
+        "https://a.example/catalog.json?a=1&b=2": json(),
+      }),
+    );
+    assert.equal(found.url, "https://a.example/catalog.json?a=1&b=2");
+  });
+
+  it("ignores a commented-out link and follows the live one (r5c1)", async () => {
+    const found = await discover(
+      "https://a.example/",
+      web({
+        "https://a.example/": html(`<!-- <link rel="ai-catalog" href="/retired.json"> --><link rel="ai-catalog" href="/catalog.json">`),
+        "https://a.example/catalog.json": json(),
+      }),
+    );
+    assert.equal(found.url, "https://a.example/catalog.json");
+  });
+
+  it("ignores links inside <template>, which a browser treats as inert", () => {
+    const page = `<template><link rel="ai-catalog" href="/t.json"></template><link rel="ai-catalog" href="/c.json">`;
+    assert.equal(htmlLinkTarget(page, "https://x.example/"), "https://x.example/c.json");
+  });
+
+  it("resolves against <base href>, and finds a link in the body", () => {
+    const page = `<head><base href="https://cdn.example/site/"></head><body><link rel="ai-catalog" href="ai.json"></body>`;
+    assert.equal(htmlLinkTarget(page, "https://x.example/page"), "https://cdn.example/site/ai.json");
+  });
+
+  it("skips a link whose href is not a URL", () => {
+    assert.equal(htmlLinkTarget(`<link rel="ai-catalog" href="http://[bad"><link rel="ai-catalog" href="/c.json">`, "https://x.example/"), "https://x.example/c.json");
+    assert.equal(linkHeaderTarget('<http://[bad>; rel="ai-catalog", </c.json>; rel="ai-catalog"', "https://x.example/"), "https://x.example/c.json");
+  });
+
   it("reads <link> attributes in any order and quoting", () => {
     assert.equal(htmlLinkTarget(`<LINK HREF=/c.json REL=ai-catalog>`, "https://x.example/p"), "https://x.example/c.json");
     assert.equal(htmlLinkTarget(`<link rel="stylesheet" href="/s.css">`, "https://x.example/"), undefined);
