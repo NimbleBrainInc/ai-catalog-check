@@ -1,7 +1,8 @@
 // The copied Link header parser (src/vendor/http-link-header.ts), held to the
 // parse tests of the upstream project it came from (http-link-header 1.1.4,
 // test/{index,quotes,rfc-examples,foldline,in-the-wild,encoding}.js), plus the
-// cases discovery depends on.
+// cases discovery depends on, including the valueless parameters RFC 8288 allows
+// and upstream mis-parses.
 
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
@@ -127,6 +128,20 @@ const CASES: [string, string, object[]][] = [
     [{ uri: "https://example.com/catalog.json", title: "AI, catalog", rel: "ai-catalog" }],
   ],
   ["an attribute named __proto__ is a member", "<x>; __proto__=y", [{ uri: "x", __proto__: "y" }]],
+  [
+    "a valueless parameter before rel (r11c1)",
+    '</catalog.json>; nopush; rel="ai-catalog"',
+    [{ uri: "/catalog.json", nopush: "", rel: "ai-catalog" }],
+  ],
+  [
+    "a valueless parameter ending a link before another link",
+    '</app.css>; rel=preload; as=style; nopush, </catalog.json>; rel="ai-catalog"',
+    [
+      { uri: "/app.css", rel: "preload", as: "style", nopush: "" },
+      { uri: "/catalog.json", rel: "ai-catalog" },
+    ],
+  ],
+  ["a valueless parameter with whitespace around it", "<a>; nopush ; rel=x", [{ uri: "a", nopush: "", rel: "x" }]],
 ];
 
 describe("the copied Link header parser", () => {

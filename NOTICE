@@ -11,4 +11,6 @@ change, apart from the statements' whitespace in requirements/.
 src/vendor/http-link-header.ts is the parsing part of http-link-header 1.1.4
 (https://codeberg.org/jhermsmeier/node-http-link-header), Copyright (c)
 2016-2026 Jonas Hermsmeier and contributors, under the MIT License, whose text
-the file carries.
+the file carries. It is modified: it reads a parameter without a value (RFC 8288
+allows them) without consuming the parameters and links after it, and it hardens
+parsing of untrusted input; the file's header lists the changes.

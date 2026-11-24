@@ -5,11 +5,14 @@
 //   Version: 1.1.4, commit c0e0471787528f86ff86b5778844d585ce892af8
 //
 // Only the parsing path is copied (`parse` and the helpers it calls), ported from
-// CommonJS to TypeScript with the logic and names unchanged. The changes, all
-// because the header comes from an untrusted website: each parsed reference is a
-// null-prototype object, so an attribute named `__proto__` is an ordinary member;
-// and `parseExtendedValue` neither assumes the optional charset and language parts
-// are present nor throws on a malformed percent-encoding. `test/vendor-http-link-header.test.ts` carries upstream's parse tests.
+// CommonJS to TypeScript with the logic and names unchanged, except for these
+// changes. A parameter without a value (`nopush`) ends at the next ";" or ",":
+// upstream read its name up to the next "=" anywhere in the header, so it
+// swallowed the parameters and links after it. And, because the header comes from
+// an untrusted website, each parsed reference is a null-prototype object, so an
+// attribute named `__proto__` is an ordinary member, and `parseExtendedValue`
+// neither assumes the optional charset and language parts are present nor throws
+// on a malformed percent-encoding. `test/vendor-http-link-header.test.ts` carries upstream's parse tests.
 //
 // The MIT License (MIT)
 // Copyright (c) 2016-2026 Jonas Hermsmeier, and contributors
@@ -161,33 +164,39 @@ export function parseLinkHeader(input: string): LinkRef[] {
         offset++;
         continue;
       }
-      let end = value.indexOf("=", offset);
-      if (end === -1) end = value.indexOf(";", offset);
-      if (end === -1) end = value.length;
+      // A parameter's name ends at its "=", or, when it has no value, at the ";"
+      // or "," after it (RFC 8288: link-param = token BWS [ "=" BWS value ]).
+      let end = offset;
+      while (end < length && value[end] !== "=" && value[end] !== ";" && value[end] !== ",") {
+        end++;
+      }
       const attr = trim(value.slice(offset, end)).toLowerCase();
       let attrValue = "";
-      offset = end + 1;
-      offset = skipWhitespace(value, offset);
-      if (value[offset] === '"') {
-        offset++;
-        while (offset < length) {
-          if (value[offset] === '"') {
-            offset++;
-            break;
-          }
-          if (value[offset] === "\\") {
-            offset++;
-          }
-          attrValue += value[offset] ?? "";
+      offset = end;
+      // A valueless parameter keeps "" and leaves offset on its delimiter, read below.
+      if (value[offset] === "=") {
+        offset = skipWhitespace(value, offset + 1);
+        if (value[offset] === '"') {
           offset++;
+          while (offset < length) {
+            if (value[offset] === '"') {
+              offset++;
+              break;
+            }
+            if (value[offset] === "\\") {
+              offset++;
+            }
+            attrValue += value[offset] ?? "";
+            offset++;
+          }
+        } else {
+          let end = offset + 1;
+          while (!DELIMITER_PATTERN.test(value[end] ?? "") && end < length) {
+            end++;
+          }
+          attrValue = value.slice(offset, end);
+          offset = end;
         }
-      } else {
-        let end = offset + 1;
-        while (!DELIMITER_PATTERN.test(value[end] ?? "") && end < length) {
-          end++;
-        }
-        attrValue = value.slice(offset, end);
-        offset = end;
       }
       const current = ref![attr];
       if (current && isSingleOccurenceAttr(attr)) {

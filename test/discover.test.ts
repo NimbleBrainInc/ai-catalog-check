@@ -2,7 +2,10 @@
 // catalog, the order they are tried in, and what a failure says.
 
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
+import { after, before, describe, it } from "node:test";
+import { cachingFetcher } from "../src/checks/fetch.ts";
 import type { Fetched } from "../src/checks/types.ts";
 import { DiscoveryError, discover, htmlLinkTarget, linkHeaderTarget } from "../src/discover.ts";
 import { text } from "../src/report.ts";
@@ -175,4 +178,45 @@ it("the report says how the catalog was found", async () => {
     discovery: { from: "https://a.example/", via: "html-link" },
   });
   assert.match(text(report), /\nfound via <link rel="ai-catalog"> on https:\/\/a\.example\/\n/);
+});
+
+describe("discovery over HTTP, with valueless Link parameters (RFC 8288 allows them)", () => {
+  const LINKS: Record<string, string> = {
+    "/valueless-before-rel": '</catalog.json>; nopush; rel="ai-catalog"',
+    "/preload-before-catalog": '</app.css>; rel=preload; as=style; nopush, </catalog.json>; rel="ai-catalog"',
+    "/preload-after-catalog": '</catalog.json>; rel="ai-catalog", </app.css>; rel=preload; as=style; nopush',
+  };
+  const server = createServer((req, res) => {
+    if (req.url === "/catalog.json") {
+      res.writeHead(200, { "content-type": "application/ai-catalog+json" });
+      res.end(CATALOG);
+    } else if (req.url === "/html") {
+      res.writeHead(200, { "content-type": "text/html" });
+      res.end('<!doctype html><link rel="preload" href="/app.css" as="style" nopush><link nopush rel="ai-catalog" href="/catalog.json">');
+    } else if (req.url && LINKS[req.url]) {
+      res.writeHead(200, { "content-type": "text/html", link: LINKS[req.url] });
+      res.end("<!doctype html><title>site</title>");
+    } else {
+      res.writeHead(404);
+      res.end();
+    }
+  });
+  let origin = "";
+  before(async () => {
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  });
+  after(() => server.close());
+
+  for (const [path, via] of [
+    ["/valueless-before-rel", "link-header"],
+    ["/preload-before-catalog", "link-header"],
+    ["/preload-after-catalog", "link-header"],
+    ["/html", "html-link"],
+  ] as const) {
+    it(`finds the catalog advertised at ${path}`, async () => {
+      const found = await discover(`${origin}${path}`, cachingFetcher());
+      assert.deepEqual([found.via, found.url], [via, `${origin}/catalog.json`]);
+    });
+  }
 });
