@@ -13,8 +13,10 @@ release checks **AI Catalog 0.9**, the 1.0 release candidate
 You need Node.js 20.19 or later.
 
 ```sh
-npx github:NimbleBrainInc/ai-catalog-check#v0.1.0 https://your-site.example
+npx ai-catalog-check https://your-site.example
 ```
+
+The package installs nothing else: its dependencies are bundled into it.
 
 Pass your website, your catalog's URL, or a local file. For a website, the suite
 finds the catalog the way the spec tells an agent to: from a `Link` header with
@@ -86,8 +88,8 @@ catalog is checked as 0.9 and, once a release checks 1.0, a 1.0 catalog as 1.0.
 `--version` lists the versions a release checks:
 
 ```
-$ npx github:NimbleBrainInc/ai-catalog-check#v0.1.0 --version
-ai-catalog-check 0.1.0 (checks AI Catalog 0.9)
+$ npx ai-catalog-check --version
+ai-catalog-check 0.1.1 (checks AI Catalog 0.9)
 ```
 
 A catalog that declares a version the release does not check gets one line instead
@@ -159,7 +161,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: npm ci && npm run build      # whatever writes your catalog
-      - uses: NimbleBrainInc/ai-catalog-check@v0.1.0
+      - uses: NimbleBrainInc/ai-catalog-check@v0.1.1
         with:
           catalogs: dist/.well-known/ai-catalog.json
 ```
@@ -175,7 +177,7 @@ jobs:
   conformance:
     runs-on: ubuntu-latest
     steps:
-      - uses: NimbleBrainInc/ai-catalog-check@v0.1.0
+      - uses: NimbleBrainInc/ai-catalog-check@v0.1.1
         with:
           catalogs: https://your-site.example
           fetch: true
@@ -190,7 +192,7 @@ jobs:
 | `spec` | | Check against this AI Catalog version instead of the one each catalog declares |
 | `verbose` | `false` | List every result in the job summary |
 
-Pin the action to a version tag (`@v0.1.0`) or a commit SHA. A new release can add a
+Pin the action to a version tag (`@v0.1.1`) or a commit SHA. A new release can add a
 check that your catalog fails.
 
 ## Options
@@ -218,7 +220,7 @@ expected:
 ```
 
 ```sh
-npx github:NimbleBrainInc/ai-catalog-check#v0.1.0 --baseline ai-catalog-baseline.yaml --fetch https://your-site.example
+npx ai-catalog-check --baseline ai-catalog-baseline.yaml --fetch https://your-site.example
 ```
 
 An expected result shows as `~`, with your reason, and does not fail the run, even

@@ -1,0 +1,36 @@
+name: Release
+
+# Publishes to npm when a version tag is pushed, through npm trusted publishing:
+# GitHub's OIDC token authenticates this workflow, so no npm token is stored, and
+# npm attaches a provenance attestation tying the version to this run and commit.
+# npmjs.com trusts this repository and this file (release.yml) by name; renaming the
+# file breaks publishing until the trusted publisher is updated.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - name: Trusted publishing needs npm 11.5.1 or later
+        run: |
+          npm --version
+          node -e 'const [a,b,c]=process.argv[1].split(".").map(Number); process.exit(a>11||(a===11&&(b>5||(b===5&&c>=1)))?0:1)' "$(npm --version)"
+      - run: npm ci
+      - name: The tag names the package's version
+        run: test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
+      - run: node scripts/build-sdk.ts
+      - run: npm run check
+      - run: npm publish --access public
