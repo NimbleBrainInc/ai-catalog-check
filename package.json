@@ -1,0 +1,43 @@
+{
+  "name": "ai-catalog-check",
+  "version": "0.1.0",
+  "description": "Conformance suite for the AI Catalog specification: every normative statement numbered and traced, checked from a CLI or a GitHub Action.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NimbleBrainInc/ai-catalog-check.git"
+  },
+  "type": "module",
+  "bin": {
+    "ai-catalog-check": "dist/cli.js"
+  },
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "requirements",
+    "spec",
+    "skills"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "node --test 'test/**/*.test.ts'",
+    "coverage": "node src/coverage.ts > COVERAGE.md",
+    "sync": "node src/sync.ts",
+    "check": "npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "parse5": "^8.1.1",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^5.9.3"
+  }
+}

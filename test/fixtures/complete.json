@@ -1,0 +1,109 @@
+{
+  "specVersion": "0.9",
+  "host": {
+    "displayName": "Acme Enterprise AI",
+    "identifier": "did:web:acme.example",
+    "documentationUrl": "https://docs.acme.example/ai",
+    "logoUrl": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4="
+  },
+  "extensions": {
+    "com.acme.catalogRegion": "us-west"
+  },
+  "entries": [
+    {
+      "identifier": "urn:air:acme.example:weather:mcp",
+      "type": "application/mcp-server-card+json",
+      "url": "https://api.acme.example/mcp/server-card.json",
+      "tags": ["weather", "forecast"],
+      "updatedAt": "2026-11-01T10:00:00Z",
+      "publisher": {
+        "identifier": "acme.example",
+        "displayName": "Acme",
+        "identityType": "dns"
+      },
+      "extensions": {
+        "https://ai-catalog.org/extensions/policy-urls": {
+          "privacyPolicyUrl": "https://acme.example/privacy",
+          "termsOfServiceUrl": "https://acme.example/terms"
+        }
+      }
+    },
+    {
+      "identifier": "urn:air:acme.example:finance:a2a",
+      "version": "2.1.0",
+      "type": "application/a2a-agent-card+json",
+      "url": "https://agents.acme.example/finance/v2.1.json",
+      "digest": "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+      "publisher": {
+        "identifier": "acme.example",
+        "displayName": "Acme"
+      },
+      "trustManifests": [
+        {
+          "contributor": "did:web:acme.example",
+          "subject": {
+            "identifier": "urn:air:acme.example:finance:a2a",
+            "type": "application/a2a-agent-card+json",
+            "digest": "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+            "version": "2.1.0"
+          },
+          "signature": {
+            "signer": "did:web:acme.example",
+            "profile": "did-web-v1",
+            "issuedAt": "2026-11-01T10:00:00Z",
+            "expiresAt": "2027-11-01T10:00:00Z",
+            "jws": "eyJhbGciOiJFUzI1NiIsImtpZCI6ImRpZDp3ZWI6YWNtZS5leGFtcGxlI3JlbGVhc2Uta2V5IiwidHlwIjoiYWktY2F0YWxvZy10cnVzdC1tYW5pZmVzdCtqd3MifQ..BwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBw"
+          }
+        },
+        {
+          "contributor": "https://assessor.example",
+          "trustSchema": {
+            "identifier": "https://assessor.example/schemas/agent-review",
+            "version": "1.0",
+            "governanceUri": "https://assessor.example/governance",
+            "verificationMethods": ["manual-review"]
+          },
+          "attestations": [
+            {
+              "type": "security-review",
+              "uri": "https://assessor.example/reviews/finance-2.1.pdf",
+              "digest": "sha384:38b060a751ac96384cd9327eb1b1e36a21fdb71114be07434c0cc7bf63f6e1da274edebfe76f65fbd51ad2f14898b95b",
+              "size": 1024,
+              "description": "Security review of release 2.1.0"
+            }
+          ],
+          "provenance": [
+            {
+              "relation": "built-from",
+              "sourceId": "https://github.com/acme/finance-agent",
+              "sourceDigest": "sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "identifier": "urn:air:acme.example:finance:a2a",
+      "version": "2.0.0",
+      "type": "application/a2a-agent-card+json",
+      "url": "https://agents.acme.example/finance/v2.0.json"
+    },
+    {
+      "identifier": "urn:air:acme.example:code-review:skill",
+      "displayName": "Code Review",
+      "description": "Reviews a diff for correctness.",
+      "type": "application/agent-skills+zip",
+      "url": "https://skills.acme.example/code-review.zip",
+      "digest": "sha512:ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff"
+    },
+    {
+      "identifier": "urn:air:acme.example:tools:catalog",
+      "displayName": "Acme Tools",
+      "type": "application/ai-catalog+json",
+      "data": {
+        "specVersion": "0.9",
+        "entries": []
+      }
+    }
+  ]
+}
