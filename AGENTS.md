@@ -1,4 +1,4 @@
-# ai-catalog-conformance
+# ai-catalog-check
 
 A conformance suite for the AI Catalog spec, run as a CLI or a GitHub Action. The
 README says what it does for a user; this file is for changing it.

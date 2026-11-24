@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ai-catalog-conformance: checks AI Catalog documents against the spec.
+// ai-catalog-check: checks AI Catalog documents against the spec.
 
 import { appendFileSync, readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
@@ -10,7 +10,7 @@ import { loadRegistry } from "./registry.ts";
 import { github, json, text } from "./report.ts";
 import { type Baseline, run } from "./run.ts";
 
-const USAGE = `Usage: ai-catalog-conformance [options] <catalog>...
+const USAGE = `Usage: ai-catalog-check [options] <catalog>...
 
 Each <catalog> is a file path or an http(s) URL. A URL that is not itself a catalog
 is a website: its catalog is found by the spec's discovery (a Link header with

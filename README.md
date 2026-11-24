@@ -1,4 +1,4 @@
-# ai-catalog-conformance
+# ai-catalog-check
 
 Check an [AI Catalog](https://ai-catalog.io/spec/) against the spec. Point it at your
 website or your `ai-catalog.json` and it tells you whether the catalog conforms, at
@@ -12,7 +12,7 @@ This release checks **AI Catalog 0.9**, the 1.0 release candidate
 You need Node.js 20.19 or later.
 
 ```sh
-npx github:NimbleBrainInc/ai-catalog-conformance#v0.1.0 https://your-site.example
+npx github:NimbleBrainInc/ai-catalog-check#v0.1.0 https://your-site.example
 ```
 
 Pass your website, your catalog's URL, or a local file. For a website, the suite
@@ -124,7 +124,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: npm ci && npm run build      # whatever writes your catalog
-      - uses: NimbleBrainInc/ai-catalog-conformance@v0.1.0
+      - uses: NimbleBrainInc/ai-catalog-check@v0.1.0
         with:
           catalogs: dist/.well-known/ai-catalog.json
 ```
@@ -140,7 +140,7 @@ jobs:
   conformance:
     runs-on: ubuntu-latest
     steps:
-      - uses: NimbleBrainInc/ai-catalog-conformance@v0.1.0
+      - uses: NimbleBrainInc/ai-catalog-check@v0.1.0
         with:
           catalogs: https://your-site.example
           fetch: true
@@ -180,7 +180,7 @@ expected:
 ```
 
 ```sh
-npx github:NimbleBrainInc/ai-catalog-conformance#v0.1.0 --baseline ai-catalog-baseline.yaml --fetch https://your-site.example
+npx github:NimbleBrainInc/ai-catalog-check#v0.1.0 --baseline ai-catalog-baseline.yaml --fetch https://your-site.example
 ```
 
 An expected result shows as `~`, with your reason, and does not fail the run, even

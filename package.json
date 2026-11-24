@@ -1,15 +1,15 @@
 {
-  "name": "ai-catalog-conformance",
+  "name": "ai-catalog-check",
   "version": "0.1.0",
   "description": "Conformance suite for the AI Catalog specification: every normative statement numbered and traced, checked from a CLI or a GitHub Action.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NimbleBrainInc/ai-catalog-conformance.git"
+    "url": "git+https://github.com/NimbleBrainInc/ai-catalog-check.git"
   },
   "type": "module",
   "bin": {
-    "ai-catalog-conformance": "dist/cli.js"
+    "ai-catalog-check": "dist/cli.js"
   },
   "exports": {
     ".": "./dist/index.js"

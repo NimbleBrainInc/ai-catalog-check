@@ -1,4 +1,4 @@
-name: AI Catalog conformance
+name: AI Catalog check
 description: Checks AI Catalog documents against the spec, every normative statement numbered and traced.
 branding:
   icon: check-square
