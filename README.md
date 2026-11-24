@@ -108,6 +108,19 @@ level, but a failure among them still fails the run. Leave `--fetch` off when yo
 check a build before you deploy it, because its entries may point at artifacts that
 are not live yet.
 
+## Let an agent do it
+
+The repository ships an [Agent Skill](skills/ai-catalog-check/SKILL.md) that teaches a
+coding agent to run the check, fix what it finds where the catalog comes from, start
+a new catalog, and add the check to CI. Install it with the
+[skills CLI](https://github.com/vercel-labs/skills):
+
+```sh
+npx skills add NimbleBrainInc/ai-catalog-check
+```
+
+Then ask your agent to check your catalog.
+
 ## Run it in CI
 
 The repository is also a GitHub Action. Each problem becomes an annotation on the
