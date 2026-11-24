@@ -1,3 +1,4 @@
+export { type Discovered, DiscoveryError, discover, type Via } from "./discover.ts";
 export { extract, type Statement, type CddlRule } from "./extract.ts";
 export { parseJson, type Parsed } from "./json.ts";
 export { loadRegistry, type Registry, type Requirement } from "./registry.ts";

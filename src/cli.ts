@@ -5,13 +5,17 @@ import { appendFileSync, readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import YAML from "yaml";
 import { cachingFetcher } from "./checks/fetch.ts";
+import { type Discovered, DiscoveryError, discover } from "./discover.ts";
 import { loadRegistry } from "./registry.ts";
 import { github, json, text } from "./report.ts";
 import { type Baseline, run } from "./run.ts";
 
 const USAGE = `Usage: ai-catalog-conformance [options] <catalog>...
 
-Each <catalog> is a file path or an http(s) URL. Checks AI Catalog ${loadRegistry().spec.version}.
+Each <catalog> is a file path or an http(s) URL. A URL that is not itself a catalog
+is a website: its catalog is found by the spec's discovery (a Link header with
+rel="ai-catalog", then an HTML <link rel="ai-catalog">, then /.well-known/ai-catalog.json).
+Checks AI Catalog ${loadRegistry().spec.version}.
 
 Options:
   --fetch              Also fetch the catalog's URL and the artifacts its entries name
@@ -60,23 +64,27 @@ async function main(): Promise<number> {
   for (const source of positionals) {
     const remote = /^https?:\/\//.test(source);
     let textIn: string;
-    let catalogResponse;
+    let found: Discovered | undefined;
     if (remote) {
-      catalogResponse = await fetcher(source);
-      if (catalogResponse.status < 200 || catalogResponse.status > 299) {
-        console.error(`${source} answered ${catalogResponse.status}`);
+      try {
+        found = await discover(source, fetcher);
+      } catch (error) {
+        const tried = error instanceof DiscoveryError ? error.tried.map((t) => `\n  ${t}`).join("") : "";
+        console.error(`${(error as Error).message}${tried}`);
         failed = true;
         continue;
       }
-      textIn = new TextDecoder().decode(catalogResponse.bytes);
+      textIn = new TextDecoder().decode(found.response.bytes);
     } else {
       textIn = readFileSync(source, "utf8");
     }
     const report = await run({
       text: textIn,
-      source,
+      source: found ? found.url : source,
       fetch: values.fetch,
-      ...(remote ? { catalogUrl: catalogResponse!.url, catalogResponse } : {}),
+      ...(found
+        ? { catalogUrl: found.url, catalogResponse: found.response, discovery: { from: found.from, via: found.via } }
+        : {}),
       fetcher,
       ...(baseline ? { baseline } : {}),
       strict: values.strict,

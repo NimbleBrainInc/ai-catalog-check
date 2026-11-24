@@ -23,7 +23,7 @@ the report goes to the job summary. Inputs:
 
 | Input | Default | |
 |---|---|---|
-| `catalogs` | (required) | Files or URLs, one per line |
+| `catalogs` | (required) | Files, catalog URLs, or websites, one per line |
 | `fetch` | `false` | Also fetch the catalog's URL and the artifacts its entries name |
 | `baseline` | | A YAML file of failures to expect (see below) |
 | `strict` | `false` | Fail on warnings too |
@@ -38,7 +38,7 @@ before it deploys may name artifacts that are not live yet.
 
 ```sh
 npx github:NimbleBrainInc/ai-catalog-conformance#v0.1.0 ./ai-catalog.json
-npx github:NimbleBrainInc/ai-catalog-conformance#v0.1.0 --fetch https://example.com/.well-known/ai-catalog.json
+npx github:NimbleBrainInc/ai-catalog-conformance#v0.1.0 --fetch https://example.com/
 ```
 
 ```
@@ -49,6 +49,13 @@ not conformant. Level 3 (Trusted) is not assessed.
     /specVersion (line 2): is "1.0"; this suite checks AI Catalog "0.9"
     https://ai-catalog.io/spec/#producer-behavior
 ```
+
+Give it a file, a catalog's URL, or a website. A URL that is not itself a catalog is
+treated as a website, and its catalog is found the way the spec's
+[discovery](https://ai-catalog.io/spec/#link-relation-discovery) says an agent should:
+a `Link` header with `rel="ai-catalog"`, then an HTML `<link rel="ai-catalog">`, then
+`/.well-known/ai-catalog.json`. The report says where it found the catalog, and when
+it finds none, what it tried.
 
 By default the report lists only what needs attention. `--verbose` (`-v`) lists every
 checked requirement with its status, the spec sentence it checks, and every finding;

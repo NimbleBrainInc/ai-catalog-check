@@ -185,10 +185,12 @@ export function cachingFetcher(timeoutMs = 15000): (url: string) => Promise<Fetc
       got = (async () => {
         const response = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(timeoutMs) });
         const type = response.headers.get("content-type");
+        const link = response.headers.get("link");
         return {
           url: response.url || url,
           status: response.status,
           mediaType: type ? type.split(";")[0]!.trim().toLowerCase() : undefined,
+          ...(link ? { link } : {}),
           bytes: new Uint8Array(await response.arrayBuffer()),
         };
       })();

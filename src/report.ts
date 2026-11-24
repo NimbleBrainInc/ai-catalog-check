@@ -1,6 +1,7 @@
 // Renders reports: as text for a person, JSON for a program, or GitHub Actions
 // workflow commands, which annotate the catalog's lines in a pull request.
 
+import { VIA_TEXT } from "./discover.ts";
 import { loadRegistry } from "./registry.ts";
 import { LEVEL_NAMES, type Report, type Result } from "./run.ts";
 
@@ -50,6 +51,9 @@ export function text(report: Report, options: TextOptions = {}): string {
   const verbose = options.verbose === true;
   const lines: string[] = [];
   lines.push(`AI Catalog ${report.spec.version}: ${report.source}`);
+  if (report.discovery && report.discovery.via !== "direct") {
+    lines.push(`Found from ${report.discovery.from} ${VIA_TEXT[report.discovery.via]}.`);
+  }
   const level = report.level === 0 ? "Not conformant: the document fails a MUST" : `${LEVEL_NAMES[report.level]}, from the document`;
   lines.push(`${level}. Level 3 (Trusted) is not assessed.`);
   if (report.fetched) {

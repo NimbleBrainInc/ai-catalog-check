@@ -6,7 +6,7 @@ branding:
 
 inputs:
   catalogs:
-    description: Catalog files (relative to the workspace) or URLs, one per line.
+    description: Catalog files (relative to the workspace), catalog URLs, or websites to discover a catalog from, one per line.
     required: true
   fetch:
     description: Also fetch the catalog's URL and the artifacts its entries name (true or false).

@@ -5,6 +5,7 @@ import { cachingFetcher, fetchChecks } from "./checks/fetch.ts";
 import { signatureChecks } from "./checks/signature.ts";
 import type { DocumentCheck, FetchCheck, Fetched, JsonObject, Outcome } from "./checks/types.ts";
 import { isObject } from "./checks/walk.ts";
+import type { Via } from "./discover.ts";
 import { lineOf, type Parsed, parseJson } from "./json.ts";
 import { loadRegistry, type Mode, type Requirement, specLink } from "./registry.ts";
 
@@ -49,12 +50,16 @@ export interface RunOptions {
   catalogResponse?: Fetched;
   fetcher?: (url: string) => Promise<Fetched>;
   baseline?: Baseline;
+  /** How the catalog was found, when discovery found it from another URL. */
+  discovery?: { from: string; via: Via };
   /** Fail on warnings as well as failures. */
   strict?: boolean;
 }
 
 export interface Report {
   source: string;
+  /** How the catalog was found, when discovery found it from another URL. */
+  discovery?: { from: string; via: Via };
   spec: { version: string; commit: string };
   fetched: boolean;
   /**
@@ -159,6 +164,7 @@ export async function run(options: RunOptions): Promise<Report> {
 
   return {
     source: options.source,
+    ...(options.discovery ? { discovery: options.discovery } : {}),
     spec: { version: registry.spec.version, commit: registry.spec.commit },
     fetched: options.fetch === true,
     level,

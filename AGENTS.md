@@ -13,6 +13,7 @@ README says what it does for a user; this file is for changing it.
 | `src/spec-facts.ts` | What checks need beyond the sentences, read from the spec: CDDL members and types, known media types, protected `typ` values |
 | `src/sync.ts` | Spec ↔ registry diff (`npm run sync`), also the traceability test |
 | `src/checks/*.ts` | One function per checked requirement, keyed by its ID |
+| `src/discover.ts` | Website URL → its catalog, by the spec's discovery order |
 | `src/run.ts` | Files the checks by mode, runs them, maps findings to statuses, computes the level, applies a baseline |
 | `src/report.ts`, `src/cli.ts`, `action.yml` | Text, JSON and GitHub output; the CLI; the composite action |
 | `test/cases.ts` | `complete.json` and one way to break each checked requirement |

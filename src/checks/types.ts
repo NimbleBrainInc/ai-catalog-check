@@ -25,6 +25,8 @@ export interface Fetched {
   status: number;
   /** The media type, lowercased, without parameters. */
   mediaType: string | undefined;
+  /** The response's `Link` header, for discovery. */
+  link?: string;
   bytes: Uint8Array;
 }
 
