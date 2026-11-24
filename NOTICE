@@ -7,3 +7,8 @@ https://github.com/Agent-Card/ai-catalog at the commit each requirements file
 names. It is licensed under the Creative Commons Attribution 4.0 International
 License (https://creativecommons.org/licenses/by/4.0/). It is reproduced without
 change, apart from the statements' whitespace in requirements/.
+
+src/vendor/http-link-header.ts is the parsing part of http-link-header 1.1.4
+(https://codeberg.org/jhermsmeier/node-http-link-header), Copyright (c)
+2016-2026 Jonas Hermsmeier and contributors, under the MIT License, whose text
+the file carries.

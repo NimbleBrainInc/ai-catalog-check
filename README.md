@@ -280,6 +280,8 @@ it a new ID, so no check means two things.
 
 ## License
 
-The code is [Apache-2.0](LICENSE). The spec text in `spec/` and quoted in
+The code is [Apache-2.0](LICENSE). `src/vendor/http-link-header.ts` is copied from
+[http-link-header](https://codeberg.org/jhermsmeier/node-http-link-header) under the
+MIT License. The spec text in `spec/` and quoted in
 `requirements/` belongs to the AI Catalog Working Group and is licensed
 [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/). See [NOTICE](NOTICE).

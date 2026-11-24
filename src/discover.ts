@@ -4,6 +4,7 @@
 // else the well-known URI. What it finds must be JSON with a `specVersion`.
 
 import { parse } from "parse5";
+import { parseLinkHeader } from "./vendor/http-link-header.ts";
 import type { Fetched } from "./checks/types.ts";
 
 export type Via = "direct" | "link-header" | "html-link" | "well-known";
@@ -49,13 +50,21 @@ function notCatalog(f: Fetched): string | undefined {
 
 const hasRel = (rel: string) => rel.toLowerCase().split(/\s+/).includes("ai-catalog");
 
-/** The target of the first `rel="ai-catalog"` link in a `Link` header [RFC 8288]. */
+/**
+ * The target of the first `rel="ai-catalog"` link in a `Link` header [RFC 8288],
+ * resolved against `base`. A header that does not parse advertises nothing.
+ */
 export function linkHeaderTarget(header: string, base: string): string | undefined {
-  for (const m of header.matchAll(/<([^>]*)>((?:\s*;\s*[^;,]+)*)/g)) {
-    const rel = /;\s*rel\s*=\s*(?:"([^"]*)"|([^\s;,]+))/i.exec(m[2] ?? "");
-    if (!rel || !hasRel(rel[1] ?? rel[2] ?? "")) continue;
+  let refs;
+  try {
+    refs = parseLinkHeader(header);
+  } catch {
+    return undefined;
+  }
+  for (const ref of refs) {
+    if (typeof ref.rel !== "string" || ref.rel.toLowerCase() !== "ai-catalog") continue;
     try {
-      return new URL(m[1]!, base).href;
+      return new URL(ref.uri, base).href;
     } catch {
       // A target that does not parse leads nowhere; look for the next one.
     }

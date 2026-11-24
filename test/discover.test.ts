@@ -110,6 +110,21 @@ describe("link parsing", () => {
     assert.equal(linkHeaderTarget('</a>; rel="ai-catalogue"', "https://x.example/"), undefined);
   });
 
+  it("follows a Link header whose earlier parameter quotes a comma (r10c1)", async () => {
+    const fetched: string[] = [];
+    const site = web({
+      "https://a.example/": html("", '<https://a.example/catalog.json>; title="AI, catalog"; rel="ai-catalog"'),
+      "https://a.example/catalog.json": json(),
+      "https://a.example/.well-known/ai-catalog.json": json(),
+    });
+    const found = await discover("https://a.example/", async (url) => {
+      fetched.push(url);
+      return site(url);
+    });
+    assert.deepEqual([found.via, found.url], ["link-header", "https://a.example/catalog.json"]);
+    assert.deepEqual(fetched, ["https://a.example/", "https://a.example/catalog.json"]);
+  });
+
   it("decodes character references in href (r5c1)", async () => {
     const found = await discover(
       "https://a.example/",

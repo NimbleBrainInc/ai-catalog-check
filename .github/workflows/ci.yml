@@ -33,7 +33,7 @@ jobs:
         uses: ./
         continue-on-error: true
         with:
-          catalogs: spec/examples/ai-catalog.json
+          catalogs: spec/0.9/examples/ai-catalog.json
       - if: steps.failing.outcome != 'failure'
         run: |
           echo "The action passed a catalog with a known failure (SIG-5)."
