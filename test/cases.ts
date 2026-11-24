@@ -124,7 +124,7 @@ export const CASES: Case[] = [
   },
   { id: "STABLE-1", expect: "warn", why: "unrecognized entry member", mutate: (c) => (c.entries[0].region = "us") },
   { id: "STABLE-1", expect: "warn", why: "unrecognized catalog member", mutate: (c) => (c.generator = "x") },
-  { id: "SVPROD-1", expect: "fail", why: "1.0", mutate: (c) => (c.specVersion = "1.0") },
+  { id: "SVPROD-1", expect: "fail", why: "not Major.Minor", mutate: (c) => (c.specVersion = "0.9.0") },
   { id: "TYPO-2", expect: "warn", why: "http URL identifier", mutate: (c) => (c.entries[0].identifier = "http://acme.example/weather") },
   { id: "PRIVACY-1", expect: "warn", why: "https logo", mutate: (c) => (c.host.logoUrl = "https://acme.example/logo.svg") },
   { id: "ENTRY-18", expect: "fail", why: "unsafe integer in data", mutate: (c) => (c.entries[4].data.big = "__BIG__") },

@@ -1,4 +1,5 @@
 import type { Json, Parsed } from "../json.ts";
+import type { SpecFacts } from "../spec-facts.ts";
 
 export type JsonObject = { [key: string]: Json };
 
@@ -16,8 +17,10 @@ export type Outcome = Violation[] | "n/a";
 export interface DocumentContext {
   catalog: JsonObject;
   parsed: Parsed;
-  /** The spec version the registry covers. */
+  /** The spec version the catalog is checked against. */
   specVersion: string;
+  /** What the checks read from that version of the spec. */
+  facts: SpecFacts;
 }
 
 export interface Fetched {

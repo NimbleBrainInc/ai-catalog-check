@@ -4,7 +4,8 @@ Check an [AI Catalog](https://ai-catalog.io/spec/) against the spec. Point it at
 website or your `ai-catalog.json` and it tells you whether the catalog conforms, at
 which level, and which spec requirement each problem breaks, with the line it is on.
 
-This release checks **AI Catalog 0.9**, the 1.0 release candidate
+It checks each catalog against the AI Catalog version the catalog declares. This
+release checks **AI Catalog 0.9**, the 1.0 release candidate
 ([v0.9.0](https://github.com/Agent-Card/ai-catalog/releases/tag/v0.9.0)).
 
 ## Check your catalog
@@ -23,22 +24,21 @@ finds the catalog the way the spec tells an agent to: from a `Link` header with
 A catalog that fails looks like this:
 
 ```
-AI Catalog 0.9 · https://catalog.nimblebrain.ai/.well-known/ai-catalog.json
-found via <link rel="ai-catalog"> on https://catalog.nimblebrain.ai
+AI Catalog 0.9 · ai-catalog.json
 
 ✗ Not conformant: 1 MUST fails
 
-  ✗ SVPROD-1  specVersion is the version implemented  MUST
-      line 2  /specVersion  is "1.0"; this suite checks AI Catalog "0.9"
-      https://ai-catalog.io/spec/#producer-behavior
+  ✗ DIGEST-3  Digests are algorithm:lowercase-hex  MUST
+      line 18  /entries/1/digest  "sha256:9F86D081…" is not of the form algorithm:lowercase-hex
+      https://ai-catalog.io/spec/#digest-format
 
-19 passed · 1 failed · 42 not applicable · 7 need --fetch
+16 passed · 1 failed · 45 not applicable · 7 need --fetch
 ```
 
 Read it top down:
 
-1. **Where the catalog came from.** The suite names the URL it checked and how it
-   found it.
+1. **What it checked.** The AI Catalog version it checked against and the catalog's
+   location. For a website, a second line says how it found the catalog.
 2. **The verdict.** `✓ Conforms at Level 2 (Discoverable)`, or `✗ Not conformant`
    with the number of MUSTs that fail.
 3. **Each problem.** Its ID and name, the requirement's strength, then each place in
@@ -53,8 +53,8 @@ you call it wrong. CI reads that exit code.
 
 Start with the `✗` lines. Each one breaks a MUST, and the catalog does not conform
 until you fix it. The finding tells you what it found, and the link takes you to the
-sentence of the spec that requires otherwise. In the example above, the catalog says
-`"specVersion": "1.0"`, and the fix is `"0.9"`, the version it implements.
+sentence of the spec that requires otherwise. In the example above, the digest's hex
+is uppercase, and the fix is to write it in lowercase.
 
 `!` lines break a SHOULD: something the spec recommends and your catalog does not
 do. They fail the run only when you pass `--strict`. An `i` line is a notice. The spec hedges a few
@@ -69,9 +69,7 @@ Catalog
   ✓ TOP-1                Catalog has specVersion and entries               MUST
   ✓ TOP-2                Catalog omits additionalSignatures                SHOULD
   ✓ HOST-1               Host has a displayName                            MUST
-  ✗ SVPROD-1             specVersion is the version implemented            MUST
-      line 2  /specVersion  is "1.0"; this suite checks AI Catalog "0.9"
-      https://ai-catalog.io/spec/#producer-behavior
+  ✓ SVPROD-1             specVersion is the version implemented            MUST
   · PRIVACY-1            Host logo is a Data URI                           n/a
 ...
 Trust Manifests
@@ -80,6 +78,30 @@ Trust Manifests
 
 [COVERAGE.md](COVERAGE.md) lists every requirement by ID with the spec's sentence.
 Look an ID up there when the name alone does not tell you enough.
+
+## Spec versions
+
+The catalog's `specVersion` picks the version it is checked against, so a 0.9
+catalog is checked as 0.9 and, once a release checks 1.0, a 1.0 catalog as 1.0.
+`--version` lists the versions a release checks:
+
+```
+$ npx github:NimbleBrainInc/ai-catalog-check#v0.1.0 --version
+ai-catalog-check 0.1.0 (checks AI Catalog 0.9)
+```
+
+A catalog that declares a version the release does not check gets one line instead
+of a report:
+
+```
+✗ Declares AI Catalog 1.0, which this release does not check (it checks 0.9).
+  If the catalog follows 0.9, set "specVersion": "0.9". To check it against 0.9 as it is, pass --spec 0.9.
+```
+
+`--spec <version>` checks against a version you name, whatever the catalog declares.
+Use it to see how a catalog fares against a version before you move it there. The
+version of `ai-catalog-check` itself says nothing about the spec: a new spec version
+arrives in a minor release, beside the versions already checked.
 
 ## Levels
 
@@ -165,6 +187,7 @@ jobs:
 | `fetch` | `false` | Also check the live copy and its artifacts |
 | `baseline` | | A file of failures to expect (below) |
 | `strict` | `false` | Fail on warnings as well |
+| `spec` | | Check against this AI Catalog version instead of the one each catalog declares |
 | `verbose` | `false` | List every result in the job summary |
 
 Pin the action to a version tag (`@v0.1.0`) or a commit SHA. A new release can add a
@@ -177,6 +200,8 @@ check that your catalog fails.
 | `--fetch` | Also check the live copy and its artifacts |
 | `-v`, `--verbose` | List every result by part of the spec, passing ones too, and every finding |
 | `--strict` | Fail on warnings as well as failures |
+| `--spec <version>` | Check against this AI Catalog version instead of the one the catalog declares |
+| `--version` | Print this release's version and the AI Catalog versions it checks |
 | `--baseline <file>` | Expect the failures the file lists |
 | `--format text\|json\|github` | `json` gives a program the whole report; `github` writes workflow annotations |
 
@@ -204,7 +229,8 @@ still have.
 
 ## How the suite works
 
-**Every requirement has an ID.** [`requirements.yaml`](requirements.yaml) holds
+**Every requirement has an ID.** [`requirements/`](requirements) holds, for each spec
+version,
 one entry for each sentence of the spec that says MUST, SHALL, REQUIRED, SHOULD or
 RECOMMENDED, quoted word for word. It also holds one entry for each CDDL rule and one
 for each definition the spec states without a keyword, such as the digest format.
@@ -237,9 +263,10 @@ that breaks it. The spec's own example catalogs run through the suite.
 release, runs both on the same catalogs, and fails if the SDK rejects a catalog that
 passes every MUST here.
 
-**One spec version per release line.** `v0.x` checks 0.9. When 1.0 changes what a
-requirement means, it gets a new major version, so the tag you pin keeps holding you
-to the same spec.
+**Each catalog is checked against the version it declares.** A release can check
+several AI Catalog versions; `--version` lists them. The catalog's `specVersion`
+picks one. When a requirement changes meaning between versions, the new version gives
+it a new ID, so no check means two things.
 
 ## Problems found in the spec and the SDK
 
@@ -254,5 +281,5 @@ to the same spec.
 ## License
 
 The code is [Apache-2.0](LICENSE). The spec text in `spec/` and quoted in
-`requirements.yaml` belongs to the AI Catalog Working Group and is licensed
+`requirements/` belongs to the AI Catalog Working Group and is licensed
 [CC-BY-4.0](https://creativecommons.org/licenses/by/4.0/). See [NOTICE](NOTICE).

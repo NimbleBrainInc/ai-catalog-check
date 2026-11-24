@@ -1,16 +1,17 @@
 // Compares a spec's normative statements with the registry, both ways.
 //
-//   node src/sync.ts [<spec.md>]
+//   node src/sync.ts [<spec.md> [<registry version>]]
 //
-// With no argument it checks the vendored spec against requirements.yaml, which
-// is what the traceability test does. Given a new version's Markdown, it lists the
-// statements the new spec adds (to number and classify), the ones it drops (to
-// retire), and the ones that moved section.
+// With no arguments it checks each vendored spec against its registry, which is
+// what the traceability test does. Given a spec's Markdown and a registry version,
+// it compares the two: for a new spec version, compare its Markdown with the
+// previous version's registry to list the statements it adds (to number and
+// classify), drops (to retire), and moves.
 
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { extract, normalize } from "./extract.ts";
-import { loadRegistry, type Registry, specPath } from "./registry.ts";
+import { LATEST_SPEC, loadRegistry, type Registry, SPEC_VERSIONS, specPath } from "./registry.ts";
 
 export interface SyncDiff {
   /** Statements in the spec with no registry entry. */
@@ -21,7 +22,7 @@ export interface SyncDiff {
   moved: { id: string; registry: string; spec: string }[];
 }
 
-export function sync(markdown: string, registry: Registry = loadRegistry()): SyncDiff {
+export function sync(markdown: string, registry: Registry): SyncDiff {
   const { statements, cddl, prose } = extract(markdown);
   const spec = [
     ...statements.map((s) => ({ section: s.section, text: normalize(s.text) })),
@@ -65,12 +66,20 @@ export function sync(markdown: string, registry: Registry = loadRegistry()): Syn
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  const file = process.argv[2] ?? fileURLToPath(specPath);
-  const diff = sync(readFileSync(file, "utf8"));
-  for (const m of diff.missing) console.log(`+ [${m.section}] ${m.text}`);
-  for (const s of diff.stale) console.log(`- ${s.id} ${s.text}`);
-  for (const m of diff.moved) console.log(`~ ${m.id} is in ${m.spec}, registered under ${m.registry}`);
-  const n = diff.missing.length + diff.stale.length + diff.moved.length;
-  console.log(n === 0 ? `requirements.yaml matches ${file}` : `${n} differences`);
+  const [file, version] = process.argv.slice(2);
+  const pairs = file
+    ? [{ file, registry: loadRegistry(version ?? LATEST_SPEC) }]
+    : SPEC_VERSIONS.map((v) => ({ file: fileURLToPath(specPath(v)), registry: loadRegistry(v) }));
+  let n = 0;
+  for (const pair of pairs) {
+    const diff = sync(readFileSync(pair.file, "utf8"), pair.registry);
+    for (const m of diff.missing) console.log(`+ [${m.section}] ${m.text}`);
+    for (const s of diff.stale) console.log(`- ${s.id} ${s.text}`);
+    for (const m of diff.moved) console.log(`~ ${m.id} is in ${m.spec}, registered under ${m.registry}`);
+    const d = diff.missing.length + diff.stale.length + diff.moved.length;
+    n += d;
+    const name = `requirements/${pair.registry.spec.version}.yaml`;
+    console.log(d === 0 ? `${name} matches ${pair.file}` : `${name}: ${d} differences from ${pair.file}`);
+  }
   process.exitCode = n === 0 ? 0 : 1;
 }

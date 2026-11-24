@@ -1,7 +1,7 @@
 // Checks that need only the catalog document, keyed by requirement ID.
 
 import { type Json, pointer } from "../json.ts";
-import { type Kind, specFacts } from "../spec-facts.ts";
+import type { Kind, SpecFacts } from "../spec-facts.ts";
 import type { DocumentCheck, JsonObject, Outcome, Violation } from "./types.ts";
 import {
   ABSOLUTE_URI,
@@ -72,14 +72,14 @@ const KIND_NAMES: Record<Kind, string> = {
   uint: "a non-negative integer",
 };
 
-function rule(name: string) {
-  const r = specFacts().cddl[name];
+function rule(facts: SpecFacts, name: string) {
+  const r = facts.cddl[name];
   if (!r) throw new Error(`the spec's CDDL has no rule ${name}`);
   return r;
 }
 
-function cddl(name: string, items: At<JsonObject>[]): Outcome {
-  const { members } = rule(name);
+function cddl(facts: SpecFacts, name: string, items: At<JsonObject>[]): Outcome {
+  const { members } = rule(facts, name);
   return over(items, (item) =>
     Object.entries(members)
       .filter(([key, kind]) => has(item.value, key) && !typeOk(item.value[key] as Json, kind))
@@ -182,11 +182,11 @@ export const documentChecks: Record<string, DocumentCheck> = {
       return [];
     }),
 
-  "ENTRY-6": ({ catalog }) =>
+  "ENTRY-6": ({ catalog, facts }) =>
     over(
       entries(catalog).filter((e) => str(e.value.type)),
       (e) =>
-        specFacts().knownTypes.has(e.value.type as string)
+        facts.knownTypes.has(e.value.type as string)
           ? []
           : [
               {
@@ -430,11 +430,11 @@ export const documentChecks: Record<string, DocumentCheck> = {
           : [{ at: pointer(pointer(e.at, "extensions"), POLICY_URLS), message: "the Policy URLs extension's value is not an object" }],
     ),
 
-  "STABLE-1": ({ catalog }) => {
+  "STABLE-1": ({ catalog, facts }) => {
     // The spec's open objects; members it does not define are allowed there, and reported.
     const unknown = (item: At<JsonObject>, name: string) =>
       Object.keys(item.value)
-        .filter((k) => !Object.hasOwn(rule(name).members, k))
+        .filter((k) => !Object.hasOwn(rule(facts, name).members, k))
         .map((k) => ({ at: pointer(item.at, k), message: `\`${k}\` is not defined by the spec; custom data belongs in \`extensions\`` }));
     const host = hostOf(catalog);
     return [
@@ -449,7 +449,7 @@ export const documentChecks: Record<string, DocumentCheck> = {
     if (!str(catalog.specVersion)) return "n/a";
     return catalog.specVersion === specVersion
       ? []
-      : [{ at: "/specVersion", message: `is "${catalog.specVersion}"; this suite checks AI Catalog "${specVersion}"` }];
+      : [{ at: "/specVersion", message: `is "${catalog.specVersion}", and this run checks the catalog against AI Catalog "${specVersion}"` }];
   },
 
   "TYPO-2": ({ catalog }) =>
@@ -466,22 +466,22 @@ export const documentChecks: Record<string, DocumentCheck> = {
     return logo.startsWith("data:") ? [] : [{ at: "/host/logoUrl", message: "`logoUrl` is not a Data URI, so fetching it reveals the client" }];
   },
 
-  "CDDL-AICatalog": ({ catalog }) => cddl("AICatalog", [root(catalog)]),
-  "CDDL-HostInfo": ({ catalog }) => cddl("HostInfo", hostOf(catalog) ? [hostOf(catalog)!] : []),
-  "CDDL-CatalogEntry": ({ catalog }) => cddl("CatalogEntry", entries(catalog)),
-  "CDDL-Publisher": ({ catalog }) =>
-    cddl("Publisher", entries(catalog).flatMap((e) => member(e, "publisher") ?? [])),
-  "CDDL-TrustManifest": ({ catalog }) => cddl("TrustManifest", manifests(catalog)),
-  "CDDL-Subject": ({ catalog }) => cddl("Subject", subjects(catalog)),
-  "CDDL-Signature": ({ catalog }) => cddl("Signature", signatures(catalog)),
-  "CDDL-TrustSchema": ({ catalog }) =>
-    cddl("TrustSchema", manifests(catalog).flatMap((m) => member(m, "trustSchema") ?? [])),
-  "CDDL-Attestation": ({ catalog }) =>
-    cddl("Attestation", manifests(catalog).flatMap((m) => objectsIn(m, "attestations"))),
-  "CDDL-ProvenanceLink": ({ catalog }) =>
-    cddl("ProvenanceLink", manifests(catalog).flatMap((m) => objectsIn(m, "provenance"))),
-  "CDDL-PolicyUrls": ({ catalog }) =>
-    cddl(
+  "CDDL-AICatalog": ({ catalog, facts }) => cddl(facts, "AICatalog", [root(catalog)]),
+  "CDDL-HostInfo": ({ catalog, facts }) => cddl(facts, "HostInfo", hostOf(catalog) ? [hostOf(catalog)!] : []),
+  "CDDL-CatalogEntry": ({ catalog, facts }) => cddl(facts, "CatalogEntry", entries(catalog)),
+  "CDDL-Publisher": ({ catalog, facts }) =>
+    cddl(facts, "Publisher", entries(catalog).flatMap((e) => member(e, "publisher") ?? [])),
+  "CDDL-TrustManifest": ({ catalog, facts }) => cddl(facts, "TrustManifest", manifests(catalog)),
+  "CDDL-Subject": ({ catalog, facts }) => cddl(facts, "Subject", subjects(catalog)),
+  "CDDL-Signature": ({ catalog, facts }) => cddl(facts, "Signature", signatures(catalog)),
+  "CDDL-TrustSchema": ({ catalog, facts }) =>
+    cddl(facts, "TrustSchema", manifests(catalog).flatMap((m) => member(m, "trustSchema") ?? [])),
+  "CDDL-Attestation": ({ catalog, facts }) =>
+    cddl(facts, "Attestation", manifests(catalog).flatMap((m) => objectsIn(m, "attestations"))),
+  "CDDL-ProvenanceLink": ({ catalog, facts }) =>
+    cddl(facts, "ProvenanceLink", manifests(catalog).flatMap((m) => objectsIn(m, "provenance"))),
+  "CDDL-PolicyUrls": ({ catalog, facts }) =>
+    cddl(facts, 
       "PolicyUrls",
       entries(catalog).flatMap((e) => {
         const x = member(e, "extensions");

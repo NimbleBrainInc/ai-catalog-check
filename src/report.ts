@@ -6,8 +6,8 @@ import { loadRegistry } from "./registry.ts";
 import { LEVEL_NAMES, type Report, type Result } from "./run.ts";
 
 /** How much of the spec's registry the suite checks. */
-export function coverage() {
-  const { requirements } = loadRegistry();
+export function coverage(version: string) {
+  const { requirements } = loadRegistry(version);
   return {
     total: requirements.length,
     checked: requirements.filter((r) => r.check).length,
@@ -76,7 +76,22 @@ export function text(report: Report, options: TextOptions = {}): string {
   };
   const lines: string[] = [];
 
-  lines.push(p.bold(`AI Catalog ${report.spec.version} · ${report.source}`));
+  if (report.unsupportedSpec) {
+    const { declared, supported } = report.unsupportedSpec;
+    lines.push(p.bold(report.source));
+    if (report.discovery && report.discovery.via !== "direct") {
+      lines.push(p.dim(`found via ${VIA_TEXT[report.discovery.via]} on ${report.discovery.from}`));
+    }
+    lines.push("");
+    const latest = supported.at(-1);
+    lines.push(
+      `${p.red("✗")} ${p.bold(`Declares AI Catalog ${declared}`)}, which this release does not check (it checks ${supported.join(", ")}).`,
+      `  If the catalog follows ${latest}, set "specVersion": "${latest}". To check it against ${latest} as it is, pass --spec ${latest}.`,
+    );
+    return lines.join("\n");
+  }
+  const how = { declared: "", requested: " (as asked)", latest: " (the newest this release checks; the catalog names none it can)" }[report.spec.chosen];
+  lines.push(p.bold(`AI Catalog ${report.spec.version} · ${report.source}`) + p.dim(how));
   if (report.discovery && report.discovery.via !== "direct") {
     lines.push(p.dim(`found via ${VIA_TEXT[report.discovery.via]} on ${report.discovery.from}`));
   }
@@ -156,7 +171,7 @@ export function text(report: Report, options: TextOptions = {}): string {
   ].filter(Boolean);
   lines.push("", summary.join(p.dim(" · ")));
   if (verbose) {
-    const cov = coverage();
+    const cov = coverage(report.spec.version);
     lines.push(
       p.dim(
         `Level 3 (Trusted) is not assessed. The suite checks ${cov.checked} of the spec's ${cov.total} requirements; ` +
@@ -178,7 +193,7 @@ function verdict(report: Report, p: ReturnType<typeof painter>): string {
 }
 
 export function json(report: Report): string {
-  return JSON.stringify({ ...report, coverage: coverage() }, null, 2);
+  return JSON.stringify({ ...report, coverage: coverage(report.spec.version) }, null, 2);
 }
 
 // Workflow command values escape %, CR and LF; properties also escape : and ,.
@@ -189,6 +204,10 @@ const escapeProperty = (s: string) => escapeData(s).replace(/:/g, "%3A").replace
 export function github(report: Report, file: string | undefined, options: TextOptions = {}): string {
   const commands: string[] = [];
   const LEVEL: Partial<Record<Result["status"], string>> = { fail: "error", warn: "warning", notice: "notice" };
+  if (report.unsupportedSpec) {
+    const { declared, supported } = report.unsupportedSpec;
+    commands.push(`::error ${file ? `file=${escapeProperty(file)},` : ""}title=${escapeProperty("Unsupported AI Catalog version")}::${escapeData(`Declares AI Catalog ${declared}; this release checks ${supported.join(", ")}.`)}`);
+  }
   if (report.notCatalog) {
     commands.push(`::error ${file ? `file=${escapeProperty(file)},` : ""}title=${escapeProperty("Not an AI Catalog")}::${escapeData(report.notCatalog)}`);
   }

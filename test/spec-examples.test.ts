@@ -9,13 +9,13 @@ import { KNOWN_SPEC_ERRORS, specExamples } from "./spec-examples.ts";
 describe("the spec's example catalogs", () => {
   const found = specExamples();
 
-  it("are found: six in the spec, and its example file", () => {
-    assert.equal(found.length, 7);
+  it("are found: for 0.9, six in the spec and its example file", () => {
+    assert.equal(found.filter((e) => e.version === "0.9").length, 7);
   });
 
   for (const example of found) {
     it(`${example.name} meets every MUST`, async () => {
-      const report = await run({ text: example.text, source: example.name });
+      const report = await run({ text: example.text, source: example.name, spec: example.version });
       const failing = report.results
         .filter((r) => r.status === "fail" && !KNOWN_SPEC_ERRORS[`${example.name} ${r.id}`])
         .map((r) => `${r.id}: ${r.findings.map((f) => `${f.at} ${f.message}`).join("; ")}`);
@@ -28,7 +28,7 @@ describe("the spec's example catalogs", () => {
       const id = key.slice(key.lastIndexOf(" ") + 1);
       const example = found.find((e) => key === `${e.name} ${id}`);
       assert.ok(example, `no example for ${key}`);
-      const report = await run({ text: example.text, source: example.name });
+      const report = await run({ text: example.text, source: example.name, spec: example.version });
       assert.equal(report.results.find((r) => r.id === id)?.status, "fail", key);
     }
   });

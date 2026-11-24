@@ -6,23 +6,29 @@ import { parseArgs } from "node:util";
 import YAML from "yaml";
 import { cachingFetcher } from "./checks/fetch.ts";
 import { type Discovered, DiscoveryError, discover } from "./discover.ts";
-import { loadRegistry } from "./registry.ts";
+import { isSupported, SPEC_VERSIONS } from "./registry.ts";
 import { github, json, text } from "./report.ts";
-import { type Baseline, run } from "./run.ts";
+import { type Baseline, run, UnsupportedSpecError } from "./run.ts";
+
+const PACKAGE = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string };
 
 const USAGE = `Usage: ai-catalog-check [options] <catalog>...
 
 Each <catalog> is a file path or an http(s) URL. A URL that is not itself a catalog
 is a website: its catalog is found by the spec's discovery (a Link header with
 rel="ai-catalog", then an HTML <link rel="ai-catalog">, then /.well-known/ai-catalog.json).
-Checks AI Catalog ${loadRegistry().spec.version}.
+
+Each catalog is checked against the AI Catalog version its specVersion declares.
+This release checks AI Catalog ${SPEC_VERSIONS.join(", ")}.
 
 Options:
+  --spec <version>     Check against this AI Catalog version, whatever the catalog declares
   --fetch              Also fetch the catalog's URL and the artifacts its entries name
   --baseline <file>    YAML listing failures to expect: expected: [{id, reason}]
   --format <format>    text (default), json, or github (annotations for GitHub Actions)
   --strict             Fail on warnings as well as failures
   -v, --verbose        List every result by part of the spec, passing ones too, and every finding
+  --version            Print this release's version and the AI Catalog versions it checks
   -h, --help           Show this help
 
 Exits 1 when a requirement fails, 2 on a usage error.`;
@@ -38,6 +44,8 @@ async function main(): Promise<number> {
         format: { type: "string", default: "text" },
         strict: { type: "boolean", default: false },
         verbose: { type: "boolean", short: "v", default: false },
+        spec: { type: "string" },
+        version: { type: "boolean", default: false },
         help: { type: "boolean", short: "h", default: false },
       },
     });
@@ -49,6 +57,14 @@ async function main(): Promise<number> {
   if (values.help) {
     console.log(USAGE);
     return 0;
+  }
+  if (values.version) {
+    console.log(`ai-catalog-check ${PACKAGE.version} (checks AI Catalog ${SPEC_VERSIONS.join(", ")})`);
+    return 0;
+  }
+  if (values.spec !== undefined && !isSupported(values.spec)) {
+    console.error(`--spec ${values.spec}: this release checks AI Catalog ${SPEC_VERSIONS.join(", ")}`);
+    return 2;
   }
   if (positionals.length === 0 || !["text", "json", "github"].includes(values.format)) {
     console.error(USAGE);
@@ -80,17 +96,25 @@ async function main(): Promise<number> {
     } else {
       textIn = readFileSync(source, "utf8");
     }
-    const report = await run({
-      text: textIn,
-      source: found ? found.url : source,
-      fetch: values.fetch,
-      ...(found
-        ? { catalogUrl: found.url, catalogResponse: found.response, discovery: { from: found.from, via: found.via } }
-        : {}),
-      fetcher,
-      ...(baseline ? { baseline } : {}),
-      strict: values.strict,
-    });
+    let report;
+    try {
+      report = await run({
+        text: textIn,
+        source: found ? found.url : source,
+        fetch: values.fetch,
+        ...(found
+          ? { catalogUrl: found.url, catalogResponse: found.response, discovery: { from: found.from, via: found.via } }
+          : {}),
+        fetcher,
+        ...(baseline ? { baseline } : {}),
+        strict: values.strict,
+        ...(values.spec !== undefined ? { spec: values.spec } : {}),
+      });
+    } catch (error) {
+      if (!(error instanceof UnsupportedSpecError)) throw error;
+      console.error(error.message);
+      return 2;
+    }
     failed ||= report.failed;
     reports.push(
       values.format === "json"

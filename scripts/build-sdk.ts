@@ -12,7 +12,9 @@ import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 export const SDK_REPO = "https://github.com/vercel-labs/ai-catalog-sdk.git";
-export const SDK_COMMIT = "1fd9de447b612387e8b7955110614de213fc6ddb"; // v0.1.0, spec 0.9
+export const SDK_COMMIT = "1fd9de447b612387e8b7955110614de213fc6ddb"; // v0.1.0
+/** The AI Catalog version that SDK release implements; the cross-check runs on that version's catalogs. */
+export const SDK_SPEC = "0.9";
 const PNPM = "pnpm@11.1.3"; // the SDK's `packageManager`
 
 export const sdkDir = fileURLToPath(new URL(`../.cache/ai-catalog-sdk-${SDK_COMMIT}/`, import.meta.url));

@@ -21,13 +21,19 @@ catalog through its `Link` header, then `<link rel="ai-catalog">`, then
 `/.well-known/ai-catalog.json`). If the package is published to npm,
 `npx ai-catalog-check` runs the same thing. Node.js 20.19 or later.
 
+The catalog's `specVersion` picks the AI Catalog version it is checked against.
+`--version` lists the versions a release checks; `--spec <version>` checks against
+a version you name instead.
+
 The JSON report gives you what you act on:
 
 | Field | Meaning |
 |---|---|
 | `level` | 0 not conformant, 1 Minimal, 2 Discoverable (Level 3 is not assessed) |
 | `failed` | Whether the run fails; the exit code is 1 when it does |
+| `spec` | The AI Catalog version checked against (`version`) and how it was chosen (`chosen`: `declared`, `requested`, `latest`) |
 | `notCatalog` | Present when the input is not a catalog at all, with why |
+| `unsupportedSpec` | Present when the catalog declares a version this release does not check; nothing was checked |
 | `results[]` | One per checked requirement: `id`, `title`, `strength`, `status`, `findings[]`, `link` |
 | `results[].findings[]` | `at` (JSON Pointer), `line`, `message` |
 
@@ -61,7 +67,8 @@ which quotes the spec sentence behind it.
 
 | ID | Fix |
 |---|---|
-| SVPROD-1 | Set `"specVersion"` to the version the CLI reports checking (`"0.9"`) |
+| `unsupportedSpec` | The catalog declares a version this release does not check. If the catalog was written for a version the release does check, correct `specVersion`. If it targets a newer spec, a newer ai-catalog-check is needed; ask the user before changing the declared version |
+| SVPROD-1 | `specVersion` is malformed, missing, or (with `--spec`) not the version checked: set it to the version the catalog follows, as `Major.Minor` (`"0.9"`) |
 | TOP-1 | The document needs `specVersion` and an `entries` array |
 | HOST-1, Level 1 | Add `host` with at least `displayName` to reach Level 2 |
 | ENTRY-1, ENTRY-7 | Each entry needs `identifier`, `type`, and exactly one of `url` or `data` |

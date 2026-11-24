@@ -1,16 +1,16 @@
 // The spec's example catalogs, and the ones the spec gets wrong.
 
 import { readFileSync } from "node:fs";
-import { specExamplePath, specPath } from "../src/registry.ts";
+import { SPEC_VERSIONS, specExamplePath, specPath } from "../src/registry.ts";
 
 /**
- * Spec examples a MUST rightly rejects, keyed by example and requirement: what
- * the spec gets wrong. Each is a bug to report to the spec, not to the suite.
+ * Spec examples a MUST rightly rejects, keyed by "<version> <example> <requirement>":
+ * what the spec gets wrong. Each is a bug to report to the spec, not to the suite.
  */
 export const KNOWN_SPEC_ERRORS: Record<string, string> = {
-  "Example: Multi-Artifact Catalog with Nested Catalog #1 SIG-5":
+  "0.9 Example: Multi-Artifact Catalog with Nested Catalog #1 SIG-5":
     "The example's `jws` ends in the placeholder `detached-jws-signature`, which is not canonical base64url (nor the 64 bytes of an ES256 signature).",
-  "examples/ai-catalog.json SIG-5":
+  "0.9 examples/ai-catalog.json SIG-5":
     "The same placeholder signature as the spec's multi-artifact example, of which this file is a copy.",
 };
 
@@ -40,9 +40,12 @@ export function examples(markdown: string): { name: string; text: string }[] {
   return out;
 }
 
-export function specExamples(): { name: string; text: string }[] {
-  return [
-    ...examples(readFileSync(specPath, "utf8")),
-    { name: "examples/ai-catalog.json", text: readFileSync(specExamplePath, "utf8") },
-  ];
+/** Every vendored spec version's example catalogs, named "<version> <example>". */
+export function specExamples(): { version: string; name: string; text: string }[] {
+  return SPEC_VERSIONS.flatMap((version) =>
+    [
+      ...examples(readFileSync(specPath(version), "utf8")),
+      { name: "examples/ai-catalog.json", text: readFileSync(specExamplePath(version), "utf8") },
+    ].map((e) => ({ version, name: `${version} ${e.name}`, text: e.text })),
+  );
 }

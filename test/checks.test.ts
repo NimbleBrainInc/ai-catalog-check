@@ -36,7 +36,7 @@ describe("levels", () => {
     assert.equal((await check((c) => delete c.host)).level, 1);
   });
   it("is not conformant when a MUST fails", async () => {
-    assert.equal((await check((c) => (c.specVersion = "1.0"))).level, 0);
+    assert.equal((await check((c) => (c.specVersion = "0.9.0"))).level, 0);
   });
   it("stays conformant when only a SHOULD warns", async () => {
     const report = await check((c) => (c.additionalSignatures = []));
@@ -85,7 +85,7 @@ describe("documents that are not catalogs", () => {
 describe("baseline", () => {
   it("turns an expected failure into a pass for the run", async () => {
     const catalog = JSON.parse(COMPLETE);
-    catalog.specVersion = "1.0";
+    catalog.specVersion = "0.9.0";
     const report = await run({
       text: JSON.stringify(catalog),
       source: "test",
@@ -131,7 +131,7 @@ describe("baseline", () => {
 
 describe("findings", () => {
   it("carry the line of the offending value", async () => {
-    const report = await check((c) => (c.specVersion = "1.0"));
+    const report = await check((c) => (c.specVersion = "0.9.0"));
     const finding = report.results.find((r) => r.id === "SVPROD-1")!.findings[0]!;
     assert.equal(finding.at, "/specVersion");
     assert.equal(finding.line, 2);

@@ -8,18 +8,19 @@ import { describe, it } from "node:test";
 import { MEDIA_TYPES } from "../src/checks/walk.ts";
 import { coverageMarkdown } from "../src/coverage.ts";
 import { strengthOf } from "../src/extract.ts";
-import { loadRegistry, specPath } from "../src/registry.ts";
+import { loadRegistry, SPEC_VERSIONS, specPath } from "../src/registry.ts";
 import { CHECKS } from "../src/run.ts";
 import { parseCddl, specFacts } from "../src/spec-facts.ts";
 import { sync } from "../src/sync.ts";
 
-describe("requirements.yaml", () => {
-  const registry = loadRegistry();
+for (const version of SPEC_VERSIONS) {
+describe(`requirements/${version}.yaml`, () => {
+  const registry = loadRegistry(version);
   const all = registry.requirements;
   const ids = new Set(all.map((r) => r.id));
 
   it("holds every normative statement of the vendored spec, word for word", () => {
-    assert.deepEqual(sync(readFileSync(specPath, "utf8")), { missing: [], stale: [], moved: [] });
+    assert.deepEqual(sync(readFileSync(specPath(version), "utf8"), registry), { missing: [], stale: [], moved: [] });
   });
 
   it("gives each requirement a unique ID", () => {
@@ -68,11 +69,11 @@ describe("requirements.yaml", () => {
   });
 });
 
-describe("the facts read from the spec", () => {
-  const facts = specFacts();
+describe(`the facts read from the ${version} spec`, () => {
+  const facts = specFacts(version);
 
   it("include every CDDL rule the registry holds", () => {
-    const rules = loadRegistry().requirements.filter((r) => /^CDDL-[A-Z]/.test(r.id)).map((r) => r.id.slice(5));
+    const rules = loadRegistry(version).requirements.filter((r) => /^CDDL-[A-Z]/.test(r.id)).map((r) => r.id.slice(5));
     assert.deepEqual(Object.keys(facts.cddl).sort(), rules.sort());
   });
 
@@ -95,6 +96,7 @@ describe("the facts read from the spec", () => {
     assert.throws(() => parseCddl([{ name: "X", text: "X = {\n  a: bstr,\n}" }]), /bstr/);
   });
 });
+}
 
 it("COVERAGE.md is current (npm run coverage)", () => {
   assert.equal(readFileSync(new URL("../COVERAGE.md", import.meta.url), "utf8"), coverageMarkdown());

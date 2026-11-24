@@ -7,8 +7,8 @@ README says what it does for a user; this file is for changing it.
 
 | Path | What |
 |---|---|
-| `spec/` | The spec's Markdown and example file, vendored at the commit `requirements.yaml` names. Never edited. |
-| `requirements.yaml` | The registry: every normative statement, numbered, with its disposition |
+| `spec/<version>/` | Each spec version's Markdown and example file, vendored at the commit its registry names. Never edited. |
+| `requirements/<version>.yaml` | Each version's registry: every normative statement, numbered, with its disposition. The files here are the versions the suite checks. |
 | `src/extract.ts` | Spec Markdown → its normative statements and CDDL rules |
 | `src/spec-facts.ts` | What checks need beyond the sentences, read from the spec: CDDL members and types, known media types, protected `typ` values |
 | `src/sync.ts` | Spec ↔ registry diff (`npm run sync`), also the traceability test |
@@ -26,9 +26,14 @@ README says what it does for a user; this file is for changing it.
 - **The registry is the spec, numbered.** An entry's `text` is the spec's sentence
   word for word. The traceability test fails on a statement with no entry, an entry
   whose text is not in the spec, or a checked entry with no check. Do not paraphrase.
-- **One spec version per release line.** The suite checks the version
-  `requirements.yaml` names. A check has one meaning, so a spec version that changes
-  what a requirement means is a new major release, not a second registry beside this one.
+- **A catalog is checked against the version it declares.** `run` picks the version
+  from the catalog's `specVersion` (or `--spec`), loads that version's registry and
+  spec facts, and runs the checks that registry lists. A well-formed version the suite
+  does not check is answered, not checked.
+- **An ID keeps one meaning in every version.** When a new spec version changes what a
+  statement requires, the statement gets a new ID in the new registry and the old ID is
+  retired there. A check therefore never asks which version it runs under; it reads
+  version-specific facts from `ctx.facts`.
 - **Read facts from the spec; do not restate them.** A table a check needs (members,
   types, media types, header values) comes from `spec-facts.ts`, which reads the spec
   and throws when it meets something it cannot read. Code names only what it acts on
@@ -64,18 +69,22 @@ README says what it does for a user; this file is for changing it.
   the AI Catalog spec. A publisher's own conventions belong where its catalog is
   generated, not here; a publisher that wants SHOULDs enforced runs `--strict`.
 
-## Moving to a new spec version
+## Adding a spec version
 
-A new spec version is a new major release; the previous line stays on its tags.
+A new version is added beside the others; existing versions keep working.
 
-1. `node src/sync.ts <new spec's ai-catalog.md>` lists the statements it adds (`+`),
-   drops (`-`) and moves (`~`) against `requirements.yaml`.
-2. Vendor the new `specification/ai-catalog.md` and `specification/examples/` over
-   `spec/`. In `requirements.yaml`, set the `spec:` version, commit and tag, number and
-   classify the added statements, retire the dropped ones, and revisit every check
-   whose statement changed meaning.
-3. Point `SDK_COMMIT` in `scripts/build-sdk.ts` at the SDK release for the new version.
-4. `npm run coverage`, `npm run check`, and bump the major version.
+1. Vendor its `specification/ai-catalog.md` and `specification/examples/` as
+   `spec/<version>/`, and copy the newest registry to `requirements/<version>.yaml`
+   with the new `spec:` version, commit, tag and published URL.
+2. `node src/sync.ts spec/<version>/ai-catalog.md <version>` lists the statements the
+   new spec adds (`+`), drops (`-`) and moves (`~`). Give each added statement the next
+   free number in its section; delete dropped ones from the new registry; give a
+   statement whose meaning changed a new ID and delete the old one from the new registry.
+3. Write a check, and a case in `test/cases.ts`, for each new ID that is checked.
+4. Point `SDK_COMMIT` and `SDK_SPEC` in `scripts/build-sdk.ts` at the SDK release for
+   the new version.
+5. `npm run coverage`, `npm run check`. Adding a version is a minor release; dropping
+   one is a major release.
 
 ## Commands
 
@@ -91,5 +100,7 @@ node src/cli.ts <catalog>     # run from source (Node 24 strips the types)
 ## Releases
 
 Consumers pin a tag (`@v0.1.0`). Tag `main` after a merge that changes what the suite
-reports, and bump `version` in `package.json` with it. A new failing check is a minor
-version: it can fail a catalog that passed.
+reports, and bump `version` in `package.json` with it. The version describes the tool,
+not the spec: a new failing check or a new spec version is a minor release (either can
+fail a catalog that passed), and dropping a spec version or a breaking change to the
+CLI, the JSON report or the action is a major one.

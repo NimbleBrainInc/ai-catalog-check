@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 import { pathToFileURL } from "node:url";
 import { run } from "../src/run.ts";
-import { sdkDir } from "../scripts/build-sdk.ts";
+import { SDK_SPEC, sdkDir } from "../scripts/build-sdk.ts";
 import { CASES, COMPLETE, mutated } from "./cases.ts";
 import { specExamples } from "./spec-examples.ts";
 
@@ -38,7 +38,7 @@ describe("the SDK's verdicts", { skip: built ? false : "SDK not built; run node 
   const corpus = [
     { name: "complete.json", text: COMPLETE },
     ...CASES.map((c) => ({ name: `${c.id}: ${c.why}`, text: mutated(c) })),
-    ...specExamples(),
+    ...specExamples().filter((e) => e.version === SDK_SPEC),
   ];
 
   for (const doc of corpus) {

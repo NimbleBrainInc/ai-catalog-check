@@ -17,6 +17,9 @@ inputs:
   strict:
     description: Fail on warnings as well as failures (true or false).
     default: "false"
+  spec:
+    description: Check against this AI Catalog version instead of the one each catalog declares.
+    default: ""
   verbose:
     description: List every result in the job summary, passing ones too (true or false).
     default: "false"
@@ -37,12 +40,14 @@ runs:
         BASELINE: ${{ inputs.baseline }}
         STRICT: ${{ inputs.strict }}
         VERBOSE: ${{ inputs.verbose }}
+        SPEC: ${{ inputs.spec }}
       run: |
         args=(--format github)
         [ "$FETCH" = true ] && args+=(--fetch)
         [ -n "$BASELINE" ] && args+=(--baseline "$BASELINE")
         [ "$STRICT" = true ] && args+=(--strict)
         [ "$VERBOSE" = true ] && args+=(--verbose)
+        [ -n "$SPEC" ] && args+=(--spec "$SPEC")
         catalogs=()
         while IFS= read -r c; do c="${c#"${c%%[![:space:]]*}"}"; [ -n "$c" ] && catalogs+=("$c"); done <<< "$CATALOGS"
         node "$GITHUB_ACTION_PATH/dist/cli.js" "${args[@]}" "${catalogs[@]}"

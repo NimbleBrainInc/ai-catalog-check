@@ -94,14 +94,18 @@ export function readJwsTyp(markdown: string): SpecFacts["jwsTyp"] {
   return { trustManifest, catalog };
 }
 
-let cached: SpecFacts | undefined;
+const cached = new Map<string, SpecFacts>();
 
-export function specFacts(): SpecFacts {
-  if (cached) return cached;
-  const markdown = readFileSync(specPath, "utf8");
-  const rules = loadRegistry()
-    .requirements.filter((r) => r.section === "cddl-schema" && r.id.startsWith("CDDL-") && /=\s*\{/.test(r.text))
-    .map((r) => ({ name: r.id.slice("CDDL-".length), text: r.text }));
-  cached = { cddl: parseCddl(rules), knownTypes: readKnownTypes(markdown), jwsTyp: readJwsTyp(markdown) };
-  return cached;
+/** What the checks need from one version of the spec. */
+export function specFacts(version: string): SpecFacts {
+  let facts = cached.get(version);
+  if (!facts) {
+    const markdown = readFileSync(specPath(version), "utf8");
+    const rules = loadRegistry(version)
+      .requirements.filter((r) => r.section === "cddl-schema" && r.id.startsWith("CDDL-") && /=\s*\{/.test(r.text))
+      .map((r) => ({ name: r.id.slice("CDDL-".length), text: r.text }));
+    facts = { cddl: parseCddl(rules), knownTypes: readKnownTypes(markdown), jwsTyp: readJwsTyp(markdown) };
+    cached.set(version, facts);
+  }
+  return facts;
 }

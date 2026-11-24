@@ -7,7 +7,8 @@ import type { DocumentCheck, FetchCheck, Fetched, JsonObject, Outcome } from "./
 import { isObject } from "./checks/walk.ts";
 import type { Via } from "./discover.ts";
 import { lineOf, type Parsed, parseJson } from "./json.ts";
-import { loadRegistry, type Mode, type Requirement, specLink } from "./registry.ts";
+import { isSupported, LATEST_SPEC, loadRegistry, type Mode, type Requirement, SPEC_VERSIONS, specLink } from "./registry.ts";
+import { specFacts } from "./spec-facts.ts";
 
 export type Status = "pass" | "fail" | "warn" | "notice" | "n/a" | "skipped" | "expected";
 
@@ -63,7 +64,15 @@ export interface RunOptions {
   discovery?: { from: string; via: Via };
   /** Fail on warnings as well as failures. */
   strict?: boolean;
+  /**
+   * The spec version to check against. By default the catalog's own `specVersion`
+   * picks it; given, it must be one this release checks.
+   */
+  spec?: string;
 }
+
+/** How the spec version a report checks against was chosen. */
+export type SpecChoice = "declared" | "requested" | "latest";
 
 export interface Report {
   source: string;
@@ -71,7 +80,17 @@ export interface Report {
   discovery?: { from: string; via: Via };
   /** Why the document is not an AI Catalog at all, when it is not a JSON object. */
   notCatalog?: string;
-  spec: { version: string; commit: string };
+  /**
+   * Set when the catalog declares a spec version this release does not check; the
+   * catalog was not checked, and `results` is empty.
+   */
+  unsupportedSpec?: { declared: string; supported: readonly string[] };
+  /**
+   * The spec version checked against, and how it was chosen: the catalog's own
+   * `specVersion`, the one asked for (--spec), or the newest this release checks,
+   * when the catalog names none it can.
+   */
+  spec: { version: string; commit: string; chosen: SpecChoice };
   fetched: boolean;
   /**
    * The document's conformance level: 0 when a MUST checked from the document fails,
@@ -99,13 +118,9 @@ export const CHECKS: { document: Record<string, DocumentCheck>; fetch: Record<st
   fetch: fetchChecks,
 };
 
-export async function run(options: RunOptions): Promise<Report> {
-  const registry = loadRegistry();
-  const specVersion = registry.spec.version;
-  // One fetcher for the run, so each URL is asked for once across every check.
-  const fetcher = options.fetcher ?? cachingFetcher();
-  const requirements = registry.requirements.filter((r) => r.check);
+export class UnsupportedSpecError extends Error {}
 
+export async function run(options: RunOptions): Promise<Report> {
   let parsed: Parsed | undefined;
   let syntax: string | undefined;
   try {
@@ -114,6 +129,35 @@ export async function run(options: RunOptions): Promise<Report> {
     syntax = (error as Error).message;
   }
   const catalog = parsed && isObject(parsed.value) ? (parsed.value as JsonObject) : undefined;
+
+  // The version to check against: the one asked for, else the catalog's own when
+  // this release checks it. A well-formed version it does not check is answered,
+  // not checked. A missing or malformed one is checked against the newest version,
+  // where TOP-1, CDDL-AICatalog and SVPROD-1 report it.
+  const declared = typeof catalog?.specVersion === "string" ? catalog.specVersion : undefined;
+  let specVersion: string;
+  let chosen: SpecChoice;
+  if (options.spec !== undefined) {
+    if (!isSupported(options.spec)) {
+      throw new UnsupportedSpecError(`AI Catalog ${options.spec} is not a version this release checks (${SPEC_VERSIONS.join(", ")})`);
+    }
+    specVersion = options.spec;
+    chosen = "requested";
+  } else if (declared !== undefined && isSupported(declared)) {
+    specVersion = declared;
+    chosen = "declared";
+  } else if (declared !== undefined && /^\d+\.\d+$/.test(declared)) {
+    return unsupported(options, declared);
+  } else {
+    specVersion = LATEST_SPEC;
+    chosen = "latest";
+  }
+
+  const registry = loadRegistry(specVersion);
+  const facts = specFacts(specVersion);
+  // One fetcher for the run, so each URL is asked for once across every check.
+  const fetcher = options.fetcher ?? cachingFetcher();
+  const requirements = registry.requirements.filter((r) => r.check);
 
   const results: Result[] = [];
   for (const r of requirements) {
@@ -138,6 +182,7 @@ export async function run(options: RunOptions): Promise<Report> {
       catalog,
       parsed,
       specVersion,
+      facts,
       catalogUrl: options.catalogUrl,
       catalogResponse: options.catalogResponse,
       fetch: fetcher,
@@ -181,13 +226,29 @@ export async function run(options: RunOptions): Promise<Report> {
     source: options.source,
     ...(options.discovery ? { discovery: options.discovery } : {}),
     ...(catalog ? {} : { notCatalog: syntax ? `it is not JSON: ${syntax}` : "it is JSON, but not an object" }),
-    spec: { version: registry.spec.version, commit: registry.spec.commit },
+    spec: { version: registry.spec.version, commit: registry.spec.commit, chosen },
     fetched: options.fetch === true,
     level,
     results,
     counts,
     staleBaseline,
     failed,
+  };
+}
+
+function unsupported(options: RunOptions, declared: string): Report {
+  const latest = loadRegistry(LATEST_SPEC);
+  return {
+    source: options.source,
+    ...(options.discovery ? { discovery: options.discovery } : {}),
+    unsupportedSpec: { declared, supported: SPEC_VERSIONS },
+    spec: { version: latest.spec.version, commit: latest.spec.commit, chosen: "latest" },
+    fetched: options.fetch === true,
+    level: 0,
+    results: [],
+    counts: { pass: 0, fail: 0, warn: 0, notice: 0, "n/a": 0, skipped: 0, expected: 0 },
+    staleBaseline: [],
+    failed: true,
   };
 }
 

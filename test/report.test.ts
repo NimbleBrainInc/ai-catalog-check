@@ -9,9 +9,9 @@ import { check } from "./cases.ts";
 
 describe("the text report", () => {
   it("leads with the verdict, then lists only problems by name", async () => {
-    const out = text(await check((c) => (c.specVersion = "1.0")));
+    const out = text(await check((c) => (c.specVersion = "0.9.0")));
     assert.match(out, /\n✗ Not conformant: 1 MUST fails\n/);
-    assert.match(out, /✗ SVPROD-1 {2}specVersion is the version implemented {2}MUST\n {6}line 2 {2}\/specVersion {2}is "1\.0"/);
+    assert.match(out, /✗ SVPROD-1 {2}specVersion is the version implemented {2}MUST\n {6}line 2 {2}\/specVersion {2}is "0\.9\.0"/);
     assert.doesNotMatch(out, /TOP-1/);
     assert.match(out, /\n\d+ passed · 1 failed · \d+ need --fetch$/);
   });
@@ -22,7 +22,7 @@ describe("the text report", () => {
   });
 
   it("lists every result by group with --verbose, and what needs --fetch on one line", async () => {
-    const report = await check((c) => (c.specVersion = "1.0"));
+    const report = await check((c) => (c.specVersion = "0.9.0"));
     const out = text(report, { verbose: true });
     for (const r of report.results.filter((x) => x.status !== "skipped")) assert.ok(out.includes(` ${r.id} `), r.id);
     assert.match(out, /\nCatalog\n {2}✓ TOP-1 +Catalog has specVersion and entries +MUST\n/);
@@ -55,7 +55,7 @@ describe("the text report", () => {
   });
 
   it("colors only when asked", async () => {
-    const report = await check((c) => (c.specVersion = "1.0"));
+    const report = await check((c) => (c.specVersion = "0.9.0"));
     assert.doesNotMatch(text(report), /\x1b\[/);
     assert.match(text(report, { color: true }), /\x1b\[31m✗\x1b\[0m/);
   });

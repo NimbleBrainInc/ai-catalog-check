@@ -3,7 +3,7 @@
 // Verifying a signature (resolving the DID, checking the bytes) is pending.
 
 import { pointer } from "../json.ts";
-import { specFacts } from "../spec-facts.ts";
+import type { SpecFacts } from "../spec-facts.ts";
 import type { DocumentCheck, JsonObject, Outcome, Violation } from "./types.ts";
 import { type At, isObject, manifests } from "./walk.ts";
 
@@ -20,12 +20,12 @@ interface Decoded extends Signed {
 
 const SEGMENT = /^[A-Za-z0-9_-]+$/;
 
-function signed(catalog: JsonObject): Signed[] {
+function signed(catalog: JsonObject, facts: SpecFacts): Signed[] {
   const out: Signed[] = [];
-  if (isObject(catalog.signature)) out.push({ sig: { value: catalog.signature, at: "/signature" }, typ: specFacts().jwsTyp.catalog });
+  if (isObject(catalog.signature)) out.push({ sig: { value: catalog.signature, at: "/signature" }, typ: facts.jwsTyp.catalog });
   for (const m of manifests(catalog)) {
     if (isObject(m.value.signature)) {
-      out.push({ sig: { value: m.value.signature, at: pointer(m.at, "signature") }, typ: specFacts().jwsTyp.trustManifest });
+      out.push({ sig: { value: m.value.signature, at: pointer(m.at, "signature") }, typ: facts.jwsTyp.trustManifest });
     }
   }
   return out;
@@ -55,8 +55,8 @@ function decode(jws: string): { header: JsonObject; signature: Uint8Array } | st
   }
 }
 
-function decoded(catalog: JsonObject, didWebOnly = false): Decoded[] {
-  return signed(catalog).flatMap((s) => {
+function decoded(catalog: JsonObject, facts: SpecFacts, didWebOnly = false): Decoded[] {
+  return signed(catalog, facts).flatMap((s) => {
     if (typeof s.sig.value.jws !== "string") return [];
     if (didWebOnly && s.sig.value.profile !== "did-web-v1") return [];
     const d = decode(s.sig.value.jws);
@@ -78,8 +78,8 @@ const LOWERCASE_DOMAIN = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?
 const IPV4 = /^\d{1,3}(?:\.\d{1,3}){3}$/;
 
 export const signatureChecks: Record<string, DocumentCheck> = {
-  "SIG-5": ({ catalog }) => {
-    const list = signed(catalog).filter((s) => typeof s.sig.value.jws === "string");
+  "SIG-5": ({ catalog, facts }) => {
+    const list = signed(catalog, facts).filter((s) => typeof s.sig.value.jws === "string");
     if (list.length === 0) return "n/a";
     return list.flatMap((s) => {
       const d = decode(s.sig.value.jws as string);
@@ -87,42 +87,42 @@ export const signatureChecks: Record<string, DocumentCheck> = {
     });
   },
 
-  "JWS-5": ({ catalog }) =>
-    over(decoded(catalog), (d) =>
+  "JWS-5": ({ catalog, facts }) =>
+    over(decoded(catalog, facts), (d) =>
       ["alg", "typ"]
         .filter((k) => !Object.hasOwn(d.header, k))
         .map((k) => ({ at: jwsAt(d), message: `the protected header has no \`${k}\`` })),
     ),
 
-  "JWS-6": ({ catalog }) =>
+  "JWS-6": ({ catalog, facts }) =>
     over(
-      decoded(catalog).filter((d) => Object.hasOwn(d.header, "typ")),
+      decoded(catalog, facts).filter((d) => Object.hasOwn(d.header, "typ")),
       (d) =>
         d.header.typ === d.typ
           ? []
           : [{ at: jwsAt(d), message: `the protected \`typ\` is "${d.header.typ}"; this object's signature needs "${d.typ}"` }],
     ),
 
-  "JWS-8": ({ catalog }) =>
-    over(decoded(catalog), (d) =>
+  "JWS-8": ({ catalog, facts }) =>
+    over(decoded(catalog, facts), (d) =>
       d.header.alg === "none" ? [{ at: jwsAt(d), message: "the protected `alg` is `none`" }] : [],
     ),
 
-  "JWS-9": ({ catalog }) =>
-    over(decoded(catalog), (d) =>
+  "JWS-9": ({ catalog, facts }) =>
+    over(decoded(catalog, facts), (d) =>
       Object.hasOwn(d.header, "b64") ? [{ at: jwsAt(d), message: "the protected header has `b64`" }] : [],
     ),
 
-  "DIDWEB-1": ({ catalog }) =>
-    over(decoded(catalog, true), (d) => {
+  "DIDWEB-1": ({ catalog, facts }) =>
+    over(decoded(catalog, facts, true), (d) => {
       const signer = d.sig.value.signer;
       return typeof signer === "string" && rootDidWebDomain(signer) !== undefined
         ? []
         : [{ at: pointer(d.sig.at, "signer"), message: `"${String(signer)}" is not a root did:web DID` }];
     }),
 
-  "DIDWEB-2": ({ catalog }) =>
-    over(decoded(catalog, true), (d) => {
+  "DIDWEB-2": ({ catalog, facts }) =>
+    over(decoded(catalog, facts, true), (d) => {
       const signer = d.sig.value.signer;
       const domain = typeof signer === "string" ? rootDidWebDomain(signer) : undefined;
       if (domain === undefined) return []; // DIDWEB-1 reports it
@@ -138,29 +138,29 @@ export const signatureChecks: Record<string, DocumentCheck> = {
       return why ? [{ at: pointer(d.sig.at, "signer"), message: `the domain "${domain}" ${why}` }] : [];
     }),
 
-  "DIDALG-1": ({ catalog }) =>
-    over(decoded(catalog, true), (d) => {
+  "DIDALG-1": ({ catalog, facts }) =>
+    over(decoded(catalog, facts, true), (d) => {
       if (d.header.alg !== "ES256") return [{ at: jwsAt(d), message: `the protected \`alg\` is "${String(d.header.alg)}", not ES256` }];
       return d.signature.length === 64
         ? []
         : [{ at: jwsAt(d), message: `the signature is ${d.signature.length} bytes; an ES256 signature is 64` }];
     }),
 
-  "DIDALG-3": ({ catalog }) =>
-    over(decoded(catalog, true), (d) =>
+  "DIDALG-3": ({ catalog, facts }) =>
+    over(decoded(catalog, facts, true), (d) =>
       Object.hasOwn(d.header, "kid") ? [] : [{ at: jwsAt(d), message: "the protected header has no `kid`" }],
     ),
 
-  "DIDALG-4": ({ catalog }) =>
-    over(decoded(catalog, true), (d) =>
+  "DIDALG-4": ({ catalog, facts }) =>
+    over(decoded(catalog, facts, true), (d) =>
       ["jku", "jwk", "x5u", "x5c"]
         .filter((k) => Object.hasOwn(d.header, k))
         .map((k) => ({ at: jwsAt(d), message: `the protected header has \`${k}\`` })),
     ),
 
-  "DIDALG-5": ({ catalog }) =>
+  "DIDALG-5": ({ catalog, facts }) =>
     over(
-      decoded(catalog, true).filter((d) => Object.hasOwn(d.header, "kid")),
+      decoded(catalog, facts, true).filter((d) => Object.hasOwn(d.header, "kid")),
       (d) => {
         const kid = d.header.kid;
         const signer = d.sig.value.signer;

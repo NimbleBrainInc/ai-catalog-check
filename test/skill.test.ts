@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import YAML from "yaml";
-import { loadRegistry } from "../src/registry.ts";
+import { LATEST_SPEC, loadRegistry } from "../src/registry.ts";
 import { run } from "../src/run.ts";
 
 const skill = readFileSync(new URL("../skills/ai-catalog-check/SKILL.md", import.meta.url), "utf8");
@@ -25,7 +25,7 @@ describe("skills/ai-catalog-check", () => {
   });
 
   it("names only requirements, and sections of requirements, that exist", () => {
-    const { requirements, sections } = loadRegistry();
+    const { requirements, sections } = loadRegistry(LATEST_SPEC);
     const ids = new Set(requirements.map((r) => r.id));
     const prefixes = Object.keys(sections).join("|");
     for (const [ref] of skill.matchAll(new RegExp(`\\b(?:${prefixes})-(?:\\d+|\\\\\\*)`, "g"))) {
