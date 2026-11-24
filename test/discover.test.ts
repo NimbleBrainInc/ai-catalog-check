@@ -122,5 +122,5 @@ it("the report says how the catalog was found", async () => {
     source: "https://a.example/.well-known/ai-catalog.json",
     discovery: { from: "https://a.example/", via: "html-link" },
   });
-  assert.match(text(report), /\nFound from https:\/\/a\.example\/ by its <link rel="ai-catalog">\.\n/);
+  assert.match(text(report), /\nfound via <link rel="ai-catalog"> on https:\/\/a\.example\/\n/);
 });

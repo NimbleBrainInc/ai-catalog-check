@@ -54,9 +54,14 @@ describe("requirements.yaml", () => {
     });
   }
 
+  it("names every checked requirement", () => {
+    for (const r of all.filter((x) => x.check)) assert.ok(r.title?.trim(), `${r.id} has no title`);
+  });
+
   it("refers only to IDs that exist", () => {
+    const idPattern = new RegExp(`\\b(?:${Object.keys(registry.sections).join("|")})-\\d+\\b`, "g");
     for (const r of all) {
-      for (const ref of `${r.excluded ?? ""} ${r.note ?? ""}`.match(/\b[A-Z][A-Z0-9]+-\d+\b/g) ?? []) {
+      for (const ref of `${r.excluded ?? ""} ${r.note ?? ""}`.match(idPattern) ?? []) {
         assert.ok(ids.has(ref), `${r.id} refers to ${ref}, which does not exist`);
       }
     }

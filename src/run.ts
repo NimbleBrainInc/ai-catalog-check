@@ -19,6 +19,10 @@ export interface Finding {
 
 export interface Result {
   id: string;
+  /** A short name for what the requirement asks. */
+  title: string;
+  /** The spec section the requirement is in. */
+  section: string;
   strength: Requirement["strength"];
   /** Whether the check read the document alone or fetched the catalog and its artifacts. */
   mode: Mode;
@@ -60,6 +64,8 @@ export interface Report {
   source: string;
   /** How the catalog was found, when discovery found it from another URL. */
   discovery?: { from: string; via: Via };
+  /** Why the document is not an AI Catalog at all, when it is not a JSON object. */
+  notCatalog?: string;
   spec: { version: string; commit: string };
   fetched: boolean;
   /**
@@ -107,7 +113,7 @@ export async function run(options: RunOptions): Promise<Report> {
   const results: Result[] = [];
   for (const r of requirements) {
     const mode = r.check!;
-    const base = { id: r.id, strength: r.strength, mode, link: specLink(registry, r), text: r.text, ...(r.note ? { note: r.note } : {}) };
+    const base = { id: r.id, title: r.title ?? r.id, section: r.section, strength: r.strength, mode, link: specLink(registry, r), text: r.text, ...(r.note ? { note: r.note } : {}) };
     if (!catalog || !parsed) {
       if (r.id === "TOP-1") {
         const message = syntax ? `The document is not JSON: ${syntax}` : "The document is not a JSON object";
@@ -165,6 +171,7 @@ export async function run(options: RunOptions): Promise<Report> {
   return {
     source: options.source,
     ...(options.discovery ? { discovery: options.discovery } : {}),
+    ...(catalog ? {} : { notCatalog: syntax ? `it is not JSON: ${syntax}` : "it is JSON, but not an object" }),
     spec: { version: registry.spec.version, commit: registry.spec.commit },
     fetched: options.fetch === true,
     level,

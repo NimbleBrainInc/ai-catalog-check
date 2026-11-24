@@ -100,9 +100,10 @@ export async function discover(start: string, fetch: (url: string) => Promise<Fe
   throw new DiscoveryError(`found no AI Catalog from ${start}`, tried);
 }
 
+/** How a report names the way it found the catalog: "found via <this> on <the site>". */
 export const VIA_TEXT: Record<Via, string> = {
   direct: "",
-  "link-header": "by its Link header",
-  "html-link": 'by its <link rel="ai-catalog">',
-  "well-known": "at the well-known URI",
+  "link-header": 'the Link header rel="ai-catalog"',
+  "html-link": '<link rel="ai-catalog">',
+  "well-known": "the well-known URI",
 };

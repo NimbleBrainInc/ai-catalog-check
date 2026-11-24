@@ -134,6 +134,6 @@ describe("the level", () => {
 
   it("is reported beside what the live copy shows", async () => {
     const report = await fetched([{ ...plugin, digest: `sha256:${"0".repeat(64)}` }]);
-    assert.match(text(report), /Level 1 \(Minimal\), from the document\..*\nThe live copy and its artifacts: 1 failed, 0 warnings \(not counted in the level\)\./);
+    assert.match(text(report), /✓ Conforms at Level 1 \(Minimal\)\n {2}live copy and artifacts: 1 failed \(not counted in the level\)/);
   });
 });

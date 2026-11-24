@@ -13,6 +13,8 @@ export type Mode = "document" | "fetch";
 
 export interface Requirement {
   id: string;
+  /** A short name for what the requirement asks, on every checked requirement. */
+  title?: string;
   /** The spec section's anchor. */
   section: string;
   strength: Strength;

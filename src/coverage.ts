@@ -44,11 +44,11 @@ export function coverageMarkdown(): string {
     "",
     "## Requirements",
     "",
-    "| ID | Strength | Role | Disposition | Statement |",
-    "|---|---|---|---|---|",
+    "| ID | Name | Strength | Role | Disposition | Statement |",
+    "|---|---|---|---|---|---|",
     ...all.map(
       (r) =>
-        `| [${r.id}](${registry.spec.published}#${r.section}) | ${r.strength} | ${r.role} | ${cell(disposition(r))} | ${cell(r.text)} |`,
+        `| [${r.id}](${registry.spec.published}#${r.section}) | ${cell(r.title ?? "")} | ${r.strength} | ${r.role} | ${cell(disposition(r))} | ${cell(r.text)} |`,
     ),
   ];
   return `${lines.join("\n")}\n`;

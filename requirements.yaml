@@ -115,6 +115,7 @@ requirements:
       identifier, enabling clients to select, filter, and route entries without parsing artifact
       content."
   - id: TOP-1
+    title: Catalog has specVersion and entries
     section: top-level-structure
     strength: MUST
     role: producer
@@ -123,6 +124,7 @@ requirements:
     note: The members are `specVersion` and `entries`.
     text: "An AI Catalog document is a JSON object that MUST contain the following members:"
   - id: TOP-2
+    title: Catalog omits additionalSignatures
     section: top-level-structure
     strength: SHOULD
     role: producer
@@ -137,6 +139,7 @@ requirements:
     excluded: Binds consumers, not the catalog.
     text: Consumers MUST accept and ignore it regardless of its value.
   - id: HOST-1
+    title: Host has a displayName
     section: host-info
     strength: MUST
     role: producer
@@ -145,6 +148,7 @@ requirements:
     note: Applies when `host` is present. The member is `displayName`.
     text: "It MUST contain:"
   - id: ENTRY-1
+    title: Entry has identifier and type
     section: catalog-entry
     strength: MUST
     role: producer
@@ -159,6 +163,7 @@ requirements:
     excluded: Binds consumers, not the catalog.
     text: Consumers that do not recognize an identifier scheme MUST treat the value as opaque.
   - id: ENTRY-3
+    title: Identifier is an absolute URI
     section: catalog-entry
     strength: SHOULD
     role: producer
@@ -167,6 +172,7 @@ requirements:
     note: "Checked as: the identifier has a URI scheme."
     text: For open or federated systems, a globally unique absolute URI is RECOMMENDED.
   - id: ENTRY-4
+    title: Identifier uses urn:air
     section: catalog-entry
     strength: SHOULD
     role: producer
@@ -186,6 +192,7 @@ requirements:
     text: A catalog operator incorporating an entry for the first time with a publisher-authorized
       `urn:air` identifier MUST preserve that identifier exactly.
   - id: ENTRY-6
+    title: Type is a recognized media type
     section: catalog-entry
     strength: SHOULD
     role: producer
@@ -196,6 +203,7 @@ requirements:
       "known types" in the ecosystem when applicable, partitioned by their respective governance
       boundaries:'
   - id: ENTRY-7
+    title: Entry has exactly one of url or data
     section: catalog-entry
     strength: MUST
     role: producer
@@ -205,6 +213,7 @@ requirements:
     text: "A Catalog Entry MUST contain exactly one of the following members to provide the artifact
       content:"
   - id: ENTRY-8
+    title: Artifact is served as its declared type
     section: catalog-entry
     strength: SHOULD
     role: producer
@@ -223,6 +232,7 @@ requirements:
       (`application/agent-plugins+zip`), none of which directly expose a self-describing name
       without processing the artifact.
   - id: ENTRY-10
+    title: displayName does not restate the artifact's name
     section: catalog-entry
     strength: SHOULD
     role: producer
@@ -242,6 +252,7 @@ requirements:
       for display, and a consumer SHOULD render it as given even when it differs from a name carried
       by the referenced artifact."
   - id: ENTRY-12
+    title: description does not restate the artifact's
     section: catalog-entry
     strength: SHOULD
     role: producer
@@ -262,6 +273,7 @@ requirements:
       it as given even when it differs from a description carried by the referenced artifact, which
       is how a publisher provides a listing-specific blurb."
   - id: ENTRY-14
+    title: version is a Semantic Version
     section: catalog-entry
     strength: SHOULD
     role: producer
@@ -269,6 +281,7 @@ requirements:
     level: 1
     text: "[Semantic Versioning](https://semver.org/) is RECOMMENDED but not required."
   - id: ENTRY-15
+    title: A single entry omits the artifact's version
     section: catalog-entry
     strength: SHOULD
     role: producer
@@ -280,6 +293,7 @@ requirements:
       entry references such an artifact the entry `version` SHOULD be omitted to avoid drift — the
       consumer can read it from the artifact.
   - id: ENTRY-16
+    title: Repeated identifiers each have a version
     section: catalog-entry
     strength: MUST
     role: producer
@@ -289,6 +303,7 @@ requirements:
       of the entry's uniqueness key, so it is REQUIRED when a catalog lists multiple versions of the
       same `identifier` (see [Multi-Version Entries](#multi-version-entries))."
   - id: ENTRY-17
+    title: version matches the artifact's
     section: catalog-entry
     strength: SHOULD
     role: producer
@@ -299,6 +314,7 @@ requirements:
       `version` that contradicts the artifact's own version is a publishing error, not a deliberate
       override.
   - id: ENTRY-18
+    title: Inline data is valid I-JSON
     section: catalog-entry
     strength: MUST
     role: producer
@@ -399,6 +415,7 @@ requirements:
     text: A registry, directory, or other service built on top of a catalog SHOULD resolve the version
       once at ingestion and cache the result, rather than fetching artifacts on the rendering path.
   - id: MULTI-1
+    title: identifier and version are unique together
     section: multi-version-entries
     strength: MUST
     role: producer
@@ -407,6 +424,7 @@ requirements:
     text: When `version` is present, the combination of `identifier` and `version` MUST be unique within
       the catalog.
   - id: MULTI-2
+    title: Unversioned identifiers are unique
     section: multi-version-entries
     strength: MUST
     role: producer
@@ -496,6 +514,7 @@ requirements:
       where an entry came from.
     text: If retained, they SHOULD be stored in a namespaced entry extension.
   - id: PUB-1
+    title: Publisher has identifier and displayName
     section: publisher-object
     strength: MUST
     role: producer
@@ -504,6 +523,7 @@ requirements:
     note: Applies when `publisher` is present. The members are `identifier` and `displayName`.
     text: "It MUST contain:"
   - id: TM-1
+    title: Trust Manifest has a contributor
     section: trust-manifest
     strength: MUST
     role: producer
@@ -511,6 +531,7 @@ requirements:
     level: 1
     text: Each manifest MUST contain `contributor` and MAY contain the optional members below.
   - id: CONTRIB-1
+    title: contributor is an absolute URI
     section: contributor-identity
     strength: MUST
     role: producer
@@ -538,6 +559,7 @@ requirements:
     excluded: Binds consumers, not the catalog.
     text: Consumers MUST NOT infer authentication from its spelling or mere presence.
   - id: CONTRIB-5
+    title: Signer is the contributor
     section: contributor-identity
     strength: MUST
     role: producer
@@ -573,6 +595,7 @@ requirements:
     text: Registries SHOULD preserve the chosen manifest and its signature rather than merge separately
       signed contents.
   - id: VALID-1
+    title: Trust Manifest carries a claim
     section: manifest-validity
     strength: MUST
     role: producer
@@ -581,6 +604,7 @@ requirements:
     text: "A Trust Manifest MUST contain at least one of: a `signature`, a `trustSchema`, a non-empty
       `attestations` array, a non-empty `provenance` array, or a non-empty `extensions` object."
   - id: VALID-2
+    title: Signed manifest has a subject
     section: manifest-validity
     strength: MUST
     role: producer
@@ -588,6 +612,7 @@ requirements:
     level: 1
     text: A manifest containing a `signature` MUST also contain `subject`.
   - id: VALID-3
+    title: No empty Trust Manifests
     section: manifest-validity
     strength: MUST
     role: producer
@@ -602,6 +627,7 @@ requirements:
     excluded: Restates VALID-2, which is checked.
     text: REQUIRED when `signature` is present.
   - id: TMOPT-2
+    title: Trust Manifest omits additionalSignatures
     section: optional-members
     strength: SHOULD
     role: producer
@@ -616,6 +642,7 @@ requirements:
     excluded: Binds consumers, not the catalog.
     text: Consumers MUST accept and ignore it regardless of its value.
   - id: SUBJ-1
+    title: Subject has identifier, type and digest
     section: subject-object
     strength: MUST
     role: producer
@@ -624,6 +651,7 @@ requirements:
     note: The members are `identifier`, `type`, and `digest`.
     text: "It MUST contain:"
   - id: SUBJ-2
+    title: Subject identifier matches the entry
     section: subject-object
     strength: MUST
     role: producer
@@ -631,6 +659,7 @@ requirements:
     level: 1
     text: It MUST exactly equal the containing entry's `identifier`.
   - id: SUBJ-3
+    title: Subject type matches the entry
     section: subject-object
     strength: MUST
     role: producer
@@ -638,6 +667,7 @@ requirements:
     level: 1
     text: It MUST exactly equal the containing entry's `type`.
   - id: SUBJ-4
+    title: Subject digest matches the entry
     section: subject-object
     strength: MUST
     role: producer
@@ -646,6 +676,7 @@ requirements:
     text: It MUST exactly equal the containing entry's `digest`, which MUST be present when an entry
       carries a signed Trust Manifest.
   - id: SUBJ-5
+    title: Subject version matches the entry
     section: subject-object
     strength: MUST
     role: producer
@@ -654,6 +685,7 @@ requirements:
     text: "`subject.version` MUST be present exactly when `entry.version` is present, and its value MUST
       exactly equal `entry.version`."
   - id: TSCHEMA-1
+    title: Trust schema has identifier and version
     section: trust-schema-object
     strength: MUST
     role: producer
@@ -662,6 +694,7 @@ requirements:
     note: The members are `identifier` and `version`.
     text: "It MUST contain:"
   - id: ATTEST-1
+    title: Attestation has type and uri
     section: attestation-object
     strength: MUST
     role: producer
@@ -670,6 +703,7 @@ requirements:
     note: The members are `type` and `uri`.
     text: "It MUST contain:"
   - id: PROVLINK-1
+    title: Provenance link has relation and sourceId
     section: provenance-link-object
     strength: MUST
     role: producer
@@ -704,13 +738,14 @@ requirements:
     text: Consumers SHOULD prefer inline `data:` attestations and Data-URI logos to avoid leaking
       verification activity to third-party endpoints.
   - id: DIGEST-1
+    title: Digests use SHA-256 or stronger
     section: digest-format
     strength: SHOULD
     role: producer
     check: document
     level: 1
-    note: Also checks the `algorithm:hex-value` form, with lowercase hex of the length the algorithm
-      produces.
+    note: "Checked as: no digest uses an algorithm weaker than SHA-256 or one the suite does not know.
+      DIGEST-3 checks the form."
     text: Producers SHOULD use SHA-256 [[RFC6234]] or stronger.
   - id: DIGEST-2
     section: digest-format
@@ -719,6 +754,7 @@ requirements:
     excluded: Binds consumers, not the catalog.
     text: Consumers MUST reject digest values using algorithms shorter than SHA-256.
   - id: DIGEST-3
+    title: Digests are algorithm:lowercase-hex
     section: digest-format
     strength: MUST
     role: producer
@@ -730,6 +766,7 @@ requirements:
       hash algorithm identifier and `hex-value` is the lowercase hexadecimal encoding of the hash
       output.
   - id: SIG-1
+    title: Signature has signer, profile, issuedAt and jws
     section: signature-object
     strength: MUST
     role: producer
@@ -752,6 +789,7 @@ requirements:
     excluded: Binds consumers, not the catalog.
     text: Consumers MUST NOT infer authentication or authority from this field alone.
   - id: SIG-4
+    title: expiresAt is after issuedAt
     section: signature-object
     strength: MUST
     role: producer
@@ -759,6 +797,7 @@ requirements:
     level: 1
     text: If present it MUST denote an instant later than `issuedAt`.
   - id: SIG-5
+    title: jws is a detached compact JWS
     section: signature-object
     strength: MUST
     role: signer
@@ -791,6 +830,7 @@ requirements:
     text: Such a signature MUST NOT count as a verified endorsement; other manifests are evaluated
       independently.
   - id: PROFILE-4
+    title: Signature profile is did-web-v1 or a URI
     section: profile-selection
     strength: MUST
     role: producer
@@ -861,6 +901,7 @@ requirements:
     level: 3
     text: Large integers that cannot round-trip as IEEE 754 doubles SHOULD be encoded as strings.
   - id: JWS-5
+    title: JWS header has alg and typ
     section: signed-payload-and-jws-construction
     strength: MUST
     role: signer
@@ -869,6 +910,7 @@ requirements:
     note: Checked by decoding each signature's protected header.
     text: The protected header MUST contain `alg` and `typ`.
   - id: JWS-6
+    title: JWS typ matches the signed object
     section: signed-payload-and-jws-construction
     strength: MUST
     role: signer
@@ -883,6 +925,7 @@ requirements:
     excluded: Binds consumers, not the catalog.
     text: Consumers MUST reject a missing or mismatched `typ`.
   - id: JWS-8
+    title: JWS alg is not none
     section: signed-payload-and-jws-construction
     strength: MUST NOT
     role: signer
@@ -891,6 +934,7 @@ requirements:
     note: "Checked as: no signature's protected header has `alg` `none`."
     text: The `alg` value `none` MUST NOT be accepted.
   - id: JWS-9
+    title: JWS header has no b64
     section: signed-payload-and-jws-construction
     strength: MUST NOT
     role: signer
@@ -965,6 +1009,7 @@ requirements:
     text: The consumer MUST also verify the artifact bytes against the matching digest using [Verifying
       Artifact Integrity](#verifying-artifact-integrity).
   - id: DIDWEB-1
+    title: Signer is a root did:web DID
     section: the-did-web-signer-profile
     strength: MUST
     role: signer
@@ -973,6 +1018,7 @@ requirements:
     note: Applies to signatures whose `profile` is `did-web-v1`, as do DIDWEB-2 and the DIDALG checks.
     text: The Signature object's `signer` MUST be a root `did:web` DID.
   - id: DIDWEB-2
+    title: Signer domain is lowercase ASCII
     section: the-did-web-signer-profile
     strength: MUST
     role: signer
@@ -988,6 +1034,7 @@ requirements:
     text: Implementations MAY support additional profiles by agreement; they MUST NOT silently apply
       these rules to a different mechanism.
   - id: DIDALG-1
+    title: did:web signatures use ES256
     section: jws-algorithm-and-key-requirements
     strength: MUST
     role: signer
@@ -1003,6 +1050,7 @@ requirements:
     text: Consumers implementing the `did:web` Signer Profile MUST support ES256 and MUST reject any
       other `alg` value when applying that profile.
   - id: DIDALG-3
+    title: JWS header has a kid
     section: jws-algorithm-and-key-requirements
     strength: MUST
     role: signer
@@ -1011,6 +1059,7 @@ requirements:
     text: The protected JWS header MUST contain `kid`, identifying the verification method that
       authorizes the signature.
   - id: DIDALG-4
+    title: JWS header names no key source
     section: jws-algorithm-and-key-requirements
     strength: MUST NOT
     role: signer
@@ -1020,6 +1069,7 @@ requirements:
       Profile selects key material only through the issuer's DID document, never from a key source
       named by the signature itself.
   - id: DIDALG-5
+    title: kid is the signer's DID URL
     section: jws-algorithm-and-key-requirements
     strength: MUST
     role: signer
@@ -1171,6 +1221,7 @@ requirements:
     text: Consumers MUST distinguish publisher-authenticated metadata from metadata supplied or endorsed
       by another entity.
   - id: INTEG-1
+    title: Digest matches the bytes served
     section: verifying-artifact-integrity
     strength: MUST
     role: consumer
@@ -1220,6 +1271,7 @@ requirements:
     text: Each key in the object MUST represent the extension type (namespace), and the corresponding
       value contains the extension data.
   - id: EXTKEY-2
+    title: Extension keys are URLs or reverse-DNS
     section: format-and-key-naming
     strength: MUST
     role: producer
@@ -1235,6 +1287,7 @@ requirements:
     excluded: Binds consumers, not the catalog.
     text: Consumers that do not recognize an extension key MUST ignore it without throwing an error.
   - id: POLICY-1
+    title: Policy URLs value is an object
     section: policy-urls-extension
     strength: MUST
     role: producer
@@ -1289,6 +1342,7 @@ requirements:
     text: Conformance tooling MAY report unrecognized members as informational output, for example to
       surface a misspelled member name, but MUST NOT treat their presence as a conformance failure.
   - id: STABLE-1
+    title: Custom data is in extensions
     section: no-stability-guarantee
     strength: SHOULD
     role: producer
@@ -1319,6 +1373,7 @@ requirements:
     excluded: Binds consumers, not the catalog.
     text: "Consumers SHOULD:"
   - id: SVPROD-1
+    title: specVersion is the version implemented
     section: producer-behavior
     strength: MUST
     role: producer
@@ -1333,6 +1388,7 @@ requirements:
     excluded: Restates SVPROD-1, which requires the exact version, which is checked.
     text: Producers SHOULD NOT set `specVersion` to a version higher than they actually conform to.
   - id: LOC-1
+    title: Catalog is served as application/ai-catalog+json
     section: location-independence
     strength: SHOULD
     role: producer
@@ -1464,6 +1520,7 @@ requirements:
     excluded: Binds consumers, not the catalog.
     text: Registries and consumers SHOULD implement similarity checks on identifiers.
   - id: TYPO-2
+    title: Identifiers are anchored to a domain
     section: identifier-typosquatting
     strength: SHOULD
     role: producer
@@ -1501,6 +1558,7 @@ requirements:
     text: Consumers SHOULD validate that the `data` content is well-formed JSON (or the expected format
       for the declared `type`) before processing.
   - id: PRIVACY-1
+    title: Host logo is a Data URI
     section: privacy-considerations
     strength: SHOULD
     role: producer
@@ -1530,6 +1588,7 @@ requirements:
       Handling](#version-handling), consumers MUST ignore unrecognized members when validating any
       of these structures, but MUST retain them when constructing signed payloads.
   - id: CDDL-AICatalog
+    title: Catalog members have their types
     section: cddl-schema
     strength: MUST
     role: producer
@@ -1548,6 +1607,7 @@ requirements:
         * text => any
       }
   - id: CDDL-HostInfo
+    title: Host members have their types
     section: cddl-schema
     strength: MUST
     role: producer
@@ -1564,6 +1624,7 @@ requirements:
         * text => any
       }
   - id: CDDL-CatalogEntry
+    title: Entry members have their types
     section: cddl-schema
     strength: MUST
     role: producer
@@ -1588,6 +1649,7 @@ requirements:
         * text => any
       }
   - id: CDDL-Publisher
+    title: Publisher members have their types
     section: cddl-schema
     strength: MUST
     role: producer
@@ -1603,6 +1665,7 @@ requirements:
         * text => any
       }
   - id: CDDL-TrustManifest
+    title: Trust Manifest members have their types
     section: cddl-schema
     strength: MUST
     role: producer
@@ -1622,6 +1685,7 @@ requirements:
         ? extensions: { * text => any }
       }
   - id: CDDL-Subject
+    title: Subject members have their types
     section: cddl-schema
     strength: MUST
     role: producer
@@ -1637,6 +1701,7 @@ requirements:
         ? version: text
       }
   - id: CDDL-Signature
+    title: Signature members have their types
     section: cddl-schema
     strength: MUST
     role: producer
@@ -1653,6 +1718,7 @@ requirements:
         jws: text
       }
   - id: CDDL-TrustSchema
+    title: Trust schema members have their types
     section: cddl-schema
     strength: MUST
     role: producer
@@ -1668,6 +1734,7 @@ requirements:
         ? verificationMethods: [* text]
       }
   - id: CDDL-Attestation
+    title: Attestation members have their types
     section: cddl-schema
     strength: MUST
     role: producer
@@ -1684,6 +1751,7 @@ requirements:
         ? description: text
       }
   - id: CDDL-ProvenanceLink
+    title: Provenance link members have their types
     section: cddl-schema
     strength: MUST
     role: producer
@@ -1701,6 +1769,7 @@ requirements:
         ? signatureRef: text
       }
   - id: CDDL-PolicyUrls
+    title: Policy URLs members have their types
     section: cddl-schema
     strength: MUST
     role: producer

@@ -59,6 +59,8 @@ async function main(): Promise<number> {
     : undefined;
 
   const fetcher = cachingFetcher();
+  // Color for a person at a terminal, unless NO_COLOR (https://no-color.org) says otherwise.
+  const color = values.format === "text" && process.stdout.isTTY === true && !process.env.NO_COLOR;
   let failed = false;
   const reports: string[] = [];
   for (const source of positionals) {
@@ -69,8 +71,8 @@ async function main(): Promise<number> {
       try {
         found = await discover(source, fetcher);
       } catch (error) {
-        const tried = error instanceof DiscoveryError ? error.tried.map((t) => `\n  ${t}`).join("") : "";
-        console.error(`${(error as Error).message}${tried}`);
+        const tried = error instanceof DiscoveryError ? error.tried.map((t) => `\n    ${t}`).join("") : "";
+        console.error(`${color ? "\x1b[31m✗\x1b[0m" : "✗"} ${source} is not an AI Catalog and points to none:${tried}`);
         failed = true;
         continue;
       }
@@ -95,7 +97,7 @@ async function main(): Promise<number> {
         ? json(report)
         : values.format === "github"
           ? github(report, remote ? undefined : source, { verbose: values.verbose })
-          : text(report, { verbose: values.verbose }),
+          : text(report, { verbose: values.verbose, color }),
     );
     // Under GitHub Actions, the report also goes to the job's summary page.
     if (values.format === "github" && process.env.GITHUB_STEP_SUMMARY) {
