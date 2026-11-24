@@ -110,15 +110,17 @@ bundle and reviewed when the lockfile changes.
 
 ## Releases
 
-npm publishes from `.github/workflows/release.yml` when a `v*` tag is pushed, through
-npm trusted publishing: no npm token is stored, and each version carries a provenance
-attestation. To release, bump `version` in `package.json` and `package-lock.json` in a
-pull request, merge it, then tag that merge on `main` (`git tag -a v0.1.1`) and push the
-tag. The workflow refuses a tag that does not match `package.json`, and runs the tests
-before it publishes. On npmjs.com the package trusts this repository and `release.yml`
-by name.
+`.github/workflows/release.yml` stages each release on npm when a `v*` tag is pushed,
+through npm trusted publishing: no npm token is stored, and each version carries a
+provenance attestation. A staged version goes live only when a maintainer approves it
+with 2FA on npmjs.com (or `npm stage approve <id>`); the trusted publisher allows
+staging and nothing more. To release, bump `version` in `package.json` and
+`package-lock.json` in a pull request, merge it, tag that merge on `main`
+(`git tag -a v0.1.2`) and push the tag, then approve the staged version. The workflow
+refuses a tag that does not match `package.json`, and runs the tests before it stages.
+On npmjs.com the package trusts this repository and `release.yml` by name.
 
-Consumers pin a tag (`@v0.1.1`). Release after a merge that changes what the suite
+Consumers pin a tag (`@v0.1.2`). Release after a merge that changes what the suite
 reports. The version describes the tool, not the spec: a new failing check or a new
 spec version is a minor release (either can fail a catalog that passed), and dropping
 a spec version or a breaking change to the CLI, the JSON report or the action is a
