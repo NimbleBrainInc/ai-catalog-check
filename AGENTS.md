@@ -98,10 +98,28 @@ npm run sync                  # spec ↔ registry diff
 node src/cli.ts <catalog>     # run from source (Node 24 strips the types)
 ```
 
+## Dependencies
+
+The published package has no runtime dependencies. `scripts/build.mjs` bundles what
+the code imports into `dist/`, fixed by `package-lock.json`, and writes each bundled
+package's license to `dist/THIRD-PARTY-LICENSES.md`; so every package is a
+`devDependency`. `test/package.test.ts` packs the package, unpacks it where no
+`node_modules` exists, and runs it. Prefer the standard library, then copying a small
+piece into `src/vendor/`, before adding a package; a package added is shipped in the
+bundle and reviewed when the lockfile changes.
+
 ## Releases
 
-Consumers pin a tag (`@v0.1.0`). Tag `main` after a merge that changes what the suite
-reports, and bump `version` in `package.json` with it. The version describes the tool,
-not the spec: a new failing check or a new spec version is a minor release (either can
-fail a catalog that passed), and dropping a spec version or a breaking change to the
-CLI, the JSON report or the action is a major one.
+npm publishes from `.github/workflows/release.yml` when a `v*` tag is pushed, through
+npm trusted publishing: no npm token is stored, and each version carries a provenance
+attestation. To release, bump `version` in `package.json` and `package-lock.json` in a
+pull request, merge it, then tag that merge on `main` (`git tag -a v0.1.1`) and push the
+tag. The workflow refuses a tag that does not match `package.json`, and runs the tests
+before it publishes. On npmjs.com the package trusts this repository and `release.yml`
+by name.
+
+Consumers pin a tag (`@v0.1.1`). Release after a merge that changes what the suite
+reports. The version describes the tool, not the spec: a new failing check or a new
+spec version is a minor release (either can fail a catalog that passed), and dropping
+a spec version or a breaking change to the CLI, the JSON report or the action is a
+major one.

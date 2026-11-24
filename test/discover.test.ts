@@ -203,7 +203,11 @@ describe("discovery over HTTP, with valueless Link parameters (RFC 8288 allows t
   });
   let origin = "";
   before(async () => {
-    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    // Fail, rather than hang, where the port cannot be opened (a sandbox, say).
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(0, "127.0.0.1", resolve);
+    });
     origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });
   after(() => server.close());
