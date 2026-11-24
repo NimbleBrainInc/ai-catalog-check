@@ -1,10 +1,13 @@
 name: Release
 
-# Publishes to npm when a version tag is pushed, through npm trusted publishing:
-# GitHub's OIDC token authenticates this workflow, so no npm token is stored, and
-# npm attaches a provenance attestation tying the version to this run and commit.
+# Stages a release on npm when a version tag is pushed, through npm trusted
+# publishing: GitHub's OIDC token authenticates this workflow, so no npm token is
+# stored, and npm attaches a provenance attestation tying the version to this run
+# and commit. The version is staged, not published: it goes live when a maintainer
+# approves it with 2FA on npmjs.com (or `npm stage approve`). The trusted publisher
+# allows staging only, so a compromised workflow cannot publish on its own.
 # npmjs.com trusts this repository and this file (release.yml) by name; renaming the
-# file breaks publishing until the trusted publisher is updated.
+# file breaks releasing until the trusted publisher is updated.
 on:
   push:
     tags: ["v*"]
@@ -33,4 +36,4 @@ jobs:
         run: test "v$(node -p 'require("./package.json").version')" = "$GITHUB_REF_NAME"
       - run: node scripts/build-sdk.ts
       - run: npm run check
-      - run: npm publish --access public
+      - run: npm stage publish

@@ -89,7 +89,7 @@ catalog is checked as 0.9 and, once a release checks 1.0, a 1.0 catalog as 1.0.
 
 ```
 $ npx ai-catalog-check --version
-ai-catalog-check 0.1.1 (checks AI Catalog 0.9)
+ai-catalog-check 0.1.2 (checks AI Catalog 0.9)
 ```
 
 A catalog that declares a version the release does not check gets one line instead
@@ -161,7 +161,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: npm ci && npm run build      # whatever writes your catalog
-      - uses: NimbleBrainInc/ai-catalog-check@v0.1.1
+      - uses: NimbleBrainInc/ai-catalog-check@v0.1.2
         with:
           catalogs: dist/.well-known/ai-catalog.json
 ```
@@ -177,7 +177,7 @@ jobs:
   conformance:
     runs-on: ubuntu-latest
     steps:
-      - uses: NimbleBrainInc/ai-catalog-check@v0.1.1
+      - uses: NimbleBrainInc/ai-catalog-check@v0.1.2
         with:
           catalogs: https://your-site.example
           fetch: true
@@ -192,7 +192,7 @@ jobs:
 | `spec` | | Check against this AI Catalog version instead of the one each catalog declares |
 | `verbose` | `false` | List every result in the job summary |
 
-Pin the action to a version tag (`@v0.1.1`) or a commit SHA. A new release can add a
+Pin the action to a version tag (`@v0.1.2`) or a commit SHA. A new release can add a
 check that your catalog fails.
 
 ## Options

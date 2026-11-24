@@ -19,7 +19,7 @@ npx -y ai-catalog-check --format json <file-or-url>
 Pass a local `ai-catalog.json`, a catalog URL, or a website (the CLI finds the
 catalog through its `Link` header, then `<link rel="ai-catalog">`, then
 `/.well-known/ai-catalog.json`). Node.js 20.19 or later. In CI, pin a version
-(`npx -y ai-catalog-check@0.1.1`).
+(`npx -y ai-catalog-check@0.1.2`).
 
 The catalog's `specVersion` picks the AI Catalog version it is checked against.
 `--version` lists the versions a release checks; `--spec <version>` checks against
@@ -94,7 +94,7 @@ file did not show is a serving problem (media type, a stale CDN, a missing artif
 Add the check to the repository's CI so the catalog stays conformant:
 
 ```yaml
-- uses: NimbleBrainInc/ai-catalog-check@v0.1.1
+- uses: NimbleBrainInc/ai-catalog-check@v0.1.2
   with:
     catalogs: dist/.well-known/ai-catalog.json   # the built catalog
 ```

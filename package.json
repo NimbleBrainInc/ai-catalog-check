@@ -1,6 +1,6 @@
 {
   "name": "ai-catalog-check",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Conformance suite for the AI Catalog specification: every normative statement numbered and traced, checked from a CLI or a GitHub Action.",
   "license": "Apache-2.0",
   "repository": {
